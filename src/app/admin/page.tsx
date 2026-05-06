@@ -18,14 +18,19 @@ export default function AdminHome() {
           body="Invite clients, see who's active, deactivate ones who haven't paid."
         />
         <LinkCard
-          href="/admin/exercises"
-          title="Exercise library"
-          body="Manage your exercise library — add cues, edit form notes, attach videos."
+          href="/admin/programs"
+          title="Programs"
+          body="Reusable templates — PPL, Upper/Lower, etc. Assign one and the client picks which day to do."
         />
         <LinkCard
           href="/admin/workouts"
           title="Workouts"
-          body="Build a session from your exercise library, assign to a client and a date."
+          body="One-off sessions assigned to a specific client and date."
+        />
+        <LinkCard
+          href="/admin/exercises"
+          title="Exercise library"
+          body="Manage your exercise library — add cues, edit form notes, attach videos."
         />
         <PlaceholderCard
           title="Progress"
