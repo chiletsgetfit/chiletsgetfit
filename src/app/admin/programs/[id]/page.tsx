@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AddDayForm } from "./AddDayForm";
 import { AddDayExerciseForm } from "./AddDayExerciseForm";
+import { ImportWorkoutForm } from "./ImportWorkoutForm";
 import {
   deleteProgram,
   removeProgramDay,
@@ -38,7 +39,7 @@ export default async function ProgramDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: program }, { data: days }, { data: library }] =
+  const [{ data: program }, { data: days }, { data: library }, { data: workouts }] =
     await Promise.all([
       supabase
         .from("programs")
@@ -56,6 +57,10 @@ export default async function ProgramDetailPage({
         .from("exercises")
         .select("id, name, muscle_group")
         .order("name"),
+      supabase
+        .from("workouts")
+        .select("id, name")
+        .order("created_at", { ascending: false }),
     ]);
 
   if (!program) notFound();
@@ -127,6 +132,7 @@ export default async function ProgramDetailPage({
         )}
 
         <AddDayForm programId={id} />
+        <ImportWorkoutForm programId={id} workouts={workouts ?? []} />
       </section>
     </div>
   );

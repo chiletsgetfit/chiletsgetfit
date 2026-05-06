@@ -120,6 +120,78 @@ export async function addProgramDay(
   return { ok: true };
 }
 
+export async function addDayFromWorkout(
+  programId: string,
+  _prev: AddDayState,
+  formData: FormData
+): Promise<AddDayState> {
+  const workout_id = String(formData.get("workout_id") ?? "").trim();
+  if (!workout_id) return { error: "Pick a workout to import." };
+
+  const overrideName = String(formData.get("name") ?? "").trim() || null;
+
+  const { supabase } = await ensureAdmin();
+
+  const { data: workout, error: workoutErr } = await supabase
+    .from("workouts")
+    .select("id, name")
+    .eq("id", workout_id)
+    .single();
+  if (workoutErr || !workout) return { error: "Workout not found." };
+
+  const { data: workoutExercises, error: weErr } = await supabase
+    .from("workout_exercises")
+    .select(
+      "exercise_id, position, target_sets, target_reps, target_weight, rest_seconds, notes"
+    )
+    .eq("workout_id", workout_id)
+    .order("position");
+  if (weErr) return { error: weErr.message };
+
+  const { data: existing } = await supabase
+    .from("program_days")
+    .select("position")
+    .eq("program_id", programId)
+    .order("position", { ascending: false })
+    .limit(1);
+  const position = (existing?.[0]?.position ?? 0) + 1;
+
+  const { data: day, error: dayErr } = await supabase
+    .from("program_days")
+    .insert({
+      program_id: programId,
+      name: overrideName ?? workout.name,
+      position,
+    })
+    .select("id")
+    .single();
+  if (dayErr || !day) return { error: dayErr?.message ?? "Failed to add day." };
+
+  if (workoutExercises && workoutExercises.length > 0) {
+    const rows = workoutExercises.map((we) => ({
+      program_day_id: day.id,
+      exercise_id: we.exercise_id,
+      position: we.position,
+      target_sets: we.target_sets,
+      target_reps: we.target_reps,
+      target_weight: we.target_weight,
+      rest_seconds: we.rest_seconds,
+      notes: we.notes,
+    }));
+    const { error: insertErr } = await supabase
+      .from("program_day_exercises")
+      .insert(rows);
+    if (insertErr) {
+      // Best-effort rollback so we don't leave an orphan empty day
+      await supabase.from("program_days").delete().eq("id", day.id);
+      return { error: insertErr.message };
+    }
+  }
+
+  revalidatePath(`/admin/programs/${programId}`);
+  return { ok: true };
+}
+
 export async function removeProgramDay(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const programId = String(formData.get("program_id") ?? "");
