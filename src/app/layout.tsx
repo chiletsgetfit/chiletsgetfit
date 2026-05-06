@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://chiletsgetfit.com"),
+  metadataBase: new URL("https://www.chiletsgetfit.com"),
   title: {
     default: "ChiletsGetFit — Fitness & Nutrition Coaching",
     template: "%s · ChiletsGetFit",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     title: "ChiletsGetFit — Fitness & Nutrition Coaching",
     description:
       "Personal training and online coaching that adapts to how you actually live.",
-    url: "https://chiletsgetfit.com",
+    url: "https://www.chiletsgetfit.com",
     siteName: "ChiletsGetFit",
     type: "website",
   },
