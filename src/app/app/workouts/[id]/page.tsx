@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { clearSet, completeWorkout, logSet } from "../../actions";
+import {
+  clearSet,
+  completeWorkout,
+  logSet,
+  removeExerciseFromMyWorkout,
+} from "../../actions";
+import { AddExerciseForm } from "./AddExerciseForm";
 
 type SetLog = {
   id: string;
@@ -51,6 +57,15 @@ export default async function ClientWorkoutPage({
   const exercises: WorkoutExercise[] = [
     ...(workout.workout_exercises ?? []),
   ].sort((a, b) => a.position - b.position);
+
+  // Library for the "+ Add exercise" form (only fetched when needed).
+  const inProgress = !workout.completed_at;
+  const { data: library } = inProgress
+    ? await supabase
+        .from("exercises")
+        .select("id, name, muscle_group")
+        .order("name")
+    : { data: null };
 
   // Last-time prescription per exercise (most recent prior workout that included it)
   const exerciseIds = exercises
@@ -135,18 +150,35 @@ export default async function ClientWorkoutPage({
           const logsByNumber = new Map(logs.map((l) => [l.set_number, l]));
           const totalRows = Math.max(we.target_sets, ...logs.map((l) => l.set_number));
 
+          const canRemove = inProgress && logs.length === 0;
           return (
             <li
               key={we.id}
               className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5"
             >
-              <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">
-                {idx + 1}
-                {ex?.muscle_group && ` · ${ex.muscle_group}`}
-              </p>
-              <p className="mt-1 text-lg font-medium text-white">
-                {ex?.name ?? "(deleted exercise)"}
-              </p>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">
+                    {idx + 1}
+                    {ex?.muscle_group && ` · ${ex.muscle_group}`}
+                  </p>
+                  <p className="mt-1 text-lg font-medium text-white">
+                    {ex?.name ?? "(deleted exercise)"}
+                  </p>
+                </div>
+                {canRemove && (
+                  <form action={removeExerciseFromMyWorkout}>
+                    <input type="hidden" name="id" value={we.id} />
+                    <input type="hidden" name="workout_id" value={id} />
+                    <button
+                      type="submit"
+                      className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 hover:text-red-400"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                )}
+              </div>
               <p className="mt-2 text-sm text-zinc-300">
                 <span className="text-gold-400">{we.target_sets} sets</span>
                 {we.target_reps && (
@@ -223,8 +255,14 @@ export default async function ClientWorkoutPage({
         })}
       </ol>
 
-      {!workout.completed_at && (
-        <form action={completeWorkout} className="mt-8">
+      {inProgress && (
+        <div className="mt-6">
+          <AddExerciseForm workoutId={id} exercises={library ?? []} />
+        </div>
+      )}
+
+      {inProgress && (
+        <form action={completeWorkout} className="mt-6">
           <input type="hidden" name="id" value={id} />
           <button
             type="submit"

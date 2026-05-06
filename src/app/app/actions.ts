@@ -145,6 +145,98 @@ export async function clearSet(formData: FormData) {
   if (workoutId) revalidatePath(`/app/workouts/${workoutId}`);
 }
 
+export async function startCustomWorkout() {
+  const { supabase, user } = await ensureClient();
+
+  const today = new Date();
+  const monthDay = today.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+
+  const { data: workout, error } = await supabase
+    .from("workouts")
+    .insert({
+      client_id: user.id,
+      created_by: user.id,
+      name: `Custom · ${monthDay}`,
+      scheduled_date: today.toISOString().slice(0, 10),
+    })
+    .select("id")
+    .single();
+  if (error || !workout) {
+    throw new Error(error?.message ?? "Could not start workout.");
+  }
+
+  revalidatePath("/app");
+  redirect(`/app/workouts/${workout.id}`);
+}
+
+export type AddClientExerciseState = { error?: string; ok?: boolean };
+
+export async function addExerciseToMyWorkout(
+  workoutId: string,
+  _prev: AddClientExerciseState,
+  formData: FormData
+): Promise<AddClientExerciseState> {
+  const exercise_id = String(formData.get("exercise_id") ?? "").trim();
+  if (!exercise_id) return { error: "Pick an exercise." };
+
+  const target_sets = parseInt(String(formData.get("target_sets") ?? "3"), 10);
+
+  const { supabase, user } = await ensureClient();
+
+  const { data: workout } = await supabase
+    .from("workouts")
+    .select("client_id, completed_at")
+    .eq("id", workoutId)
+    .single();
+  if (!workout || workout.client_id !== user.id) {
+    return { error: "Workout not found." };
+  }
+  if (workout.completed_at) {
+    return { error: "Workout is already complete." };
+  }
+
+  const { data: existing } = await supabase
+    .from("workout_exercises")
+    .select("position")
+    .eq("workout_id", workoutId)
+    .order("position", { ascending: false })
+    .limit(1);
+  const position = (existing?.[0]?.position ?? 0) + 1;
+
+  const { error } = await supabase.from("workout_exercises").insert({
+    workout_id: workoutId,
+    exercise_id,
+    position,
+    target_sets: isNaN(target_sets) || target_sets < 1 ? 3 : target_sets,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath(`/app/workouts/${workoutId}`);
+  return { ok: true };
+}
+
+export async function removeExerciseFromMyWorkout(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const workoutId = String(formData.get("workout_id") ?? "");
+  if (!id) return;
+
+  const { supabase, user } = await ensureClient();
+
+  const { data: we } = await supabase
+    .from("workout_exercises")
+    .select("workout_id, workouts!inner ( client_id )")
+    .eq("id", id)
+    .single();
+  const w = Array.isArray(we?.workouts) ? we?.workouts[0] : we?.workouts;
+  if (w?.client_id !== user.id) throw new Error("Not your workout.");
+
+  await supabase.from("workout_exercises").delete().eq("id", id);
+  if (workoutId) revalidatePath(`/app/workouts/${workoutId}`);
+}
+
 export async function completeWorkout(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) throw new Error("Workout id required.");

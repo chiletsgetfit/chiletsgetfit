@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { startProgramDay } from "./actions";
+import { startCustomWorkout, startProgramDay } from "./actions";
 
 function startOfWeek(d = new Date()) {
   const date = new Date(d);
@@ -45,8 +44,13 @@ export default async function ClientDashboard() {
           Hey {firstName}.
         </h1>
         <p className="mt-2 text-zinc-400">
-          Your coach hasn&apos;t assigned a program yet. Check back soon.
+          Your coach hasn&apos;t assigned a program yet. You can still build a
+          custom workout below.
         </p>
+
+        <div className="mt-8">
+          <CustomWorkoutCard />
+        </div>
       </div>
     );
   }
@@ -204,8 +208,30 @@ export default async function ClientDashboard() {
             </form>
           );
         })}
+        <CustomWorkoutCard />
       </div>
     </div>
+  );
+}
+
+function CustomWorkoutCard() {
+  return (
+    <form action={startCustomWorkout}>
+      <button
+        type="submit"
+        className="group block w-full rounded-2xl border border-dashed border-zinc-800 bg-zinc-950/60 p-5 text-left transition-colors hover:border-gold-400"
+      >
+        <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-500">
+          Off-script
+        </p>
+        <p className="mt-1 text-lg font-semibold text-white">
+          Custom workout
+        </p>
+        <span className="mt-4 inline-block text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500 group-hover:text-gold-400">
+          + Build it →
+        </span>
+      </button>
+    </form>
   );
 }
 
