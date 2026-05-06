@@ -22,7 +22,8 @@ export default function AdminHome() {
           title="Exercise library"
           body="Manage your exercise library — add cues, edit form notes, attach videos."
         />
-        <PlaceholderCard
+        <LinkCard
+          href="/admin/workouts"
           title="Workouts"
           body="Build a session from your exercise library, assign to a client and a date."
         />
