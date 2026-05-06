@@ -35,12 +35,20 @@ export function Header() {
           ))}
         </nav>
 
-        <Link
-          href="/contact"
-          className="hidden md:inline-flex h-10 items-center rounded-full bg-gold-500 px-5 text-xs font-semibold uppercase tracking-[0.2em] text-black transition-colors hover:bg-gold-400"
-        >
-          Start Coaching
-        </Link>
+        <div className="hidden md:flex items-center gap-5">
+          <Link
+            href="/login"
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300 transition-colors hover:text-gold-400"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/contact"
+            className="inline-flex h-10 items-center rounded-full bg-gold-500 px-5 text-xs font-semibold uppercase tracking-[0.2em] text-black transition-colors hover:bg-gold-400"
+          >
+            Start Coaching
+          </Link>
+        </div>
 
         <button
           type="button"
@@ -90,6 +98,13 @@ export function Header() {
                 {item.label}
               </Link>
             ))}
+            <Link
+              href="/login"
+              onClick={close}
+              className="border-b border-zinc-900 px-6 py-4 text-base text-zinc-100 hover:bg-zinc-900 hover:text-gold-400"
+            >
+              Sign in
+            </Link>
             <Link
               href="/contact"
               onClick={close}
