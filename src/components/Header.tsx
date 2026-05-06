@@ -17,10 +17,10 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-900 bg-black/85 backdrop-blur supports-[backdrop-filter]:bg-black/60">
-      <Container className="flex h-16 items-center justify-between">
+      <Container className="flex h-20 items-center justify-between md:h-24">
         <Link href="/" onClick={close} className="flex items-center" aria-label="ChiletsGetFit home">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/logo.svg" alt="ChiletsGetFit" className="h-8 w-auto" />
+          <img src="/brand/logo.svg" alt="ChiletsGetFit" className="h-12 w-auto md:h-14" />
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">

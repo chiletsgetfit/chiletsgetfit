@@ -22,7 +22,7 @@ export function Footer() {
       <Container className="grid gap-10 py-14 md:grid-cols-3">
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/logo.svg" alt="ChiletsGetFit" className="h-10 w-auto" />
+          <img src="/brand/logo.svg" alt="ChiletsGetFit" className="h-14 w-auto md:h-16" />
           <p className="mt-5 max-w-sm text-sm text-zinc-400">
             Fitness &amp; Nutrition Coaching, built around how you actually live.
           </p>
