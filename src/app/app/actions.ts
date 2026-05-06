@@ -80,6 +80,71 @@ export async function startProgramDay(formData: FormData) {
   redirect(`/app/workouts/${workout.id}`);
 }
 
+export async function logSet(
+  workoutExerciseId: string,
+  setNumber: number,
+  formData: FormData
+) {
+  const repsRaw = String(formData.get("reps") ?? "").trim();
+  const weightRaw = String(formData.get("weight") ?? "").trim();
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+
+  const reps = repsRaw ? parseInt(repsRaw, 10) : null;
+  const weight = weightRaw ? parseFloat(weightRaw) : null;
+
+  const { supabase, user } = await ensureClient();
+
+  // Verify the workout_exercise belongs to this user.
+  const { data: we, error: weErr } = await supabase
+    .from("workout_exercises")
+    .select("workout_id, workouts!inner ( client_id )")
+    .eq("id", workoutExerciseId)
+    .single();
+  if (weErr || !we) throw new Error("Exercise not found.");
+  const workout = Array.isArray(we.workouts) ? we.workouts[0] : we.workouts;
+  if (workout?.client_id !== user.id) throw new Error("Not your workout.");
+
+  const { error } = await supabase.from("set_logs").upsert(
+    {
+      workout_exercise_id: workoutExerciseId,
+      set_number: setNumber,
+      reps: reps !== null && !isNaN(reps) ? reps : null,
+      weight: weight !== null && !isNaN(weight) ? weight : null,
+      notes,
+      completed_at: new Date().toISOString(),
+    },
+    { onConflict: "workout_exercise_id,set_number" }
+  );
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/app/workouts/${we.workout_id}`);
+}
+
+export async function clearSet(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const workoutId = String(formData.get("workout_id") ?? "");
+  if (!id) return;
+
+  const { supabase, user } = await ensureClient();
+
+  // RLS will scope the delete to this user's own logs, but make it explicit.
+  const { data: log } = await supabase
+    .from("set_logs")
+    .select(
+      "id, workout_exercise_id, workout_exercises!inner ( workouts!inner ( client_id ) )"
+    )
+    .eq("id", id)
+    .single();
+  const we = Array.isArray(log?.workout_exercises)
+    ? log?.workout_exercises[0]
+    : log?.workout_exercises;
+  const workout = Array.isArray(we?.workouts) ? we?.workouts[0] : we?.workouts;
+  if (workout?.client_id !== user.id) throw new Error("Not your set.");
+
+  await supabase.from("set_logs").delete().eq("id", id);
+  if (workoutId) revalidatePath(`/app/workouts/${workoutId}`);
+}
+
 export async function completeWorkout(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) throw new Error("Workout id required.");

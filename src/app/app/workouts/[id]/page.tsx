@@ -1,7 +1,31 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { completeWorkout } from "../../actions";
+import { clearSet, completeWorkout, logSet } from "../../actions";
+
+type SetLog = {
+  id: string;
+  set_number: number;
+  reps: number | null;
+  weight: number | null;
+  notes: string | null;
+  completed_at: string;
+};
+
+type WorkoutExercise = {
+  id: string;
+  position: number;
+  target_sets: number;
+  target_reps: string | null;
+  target_weight: number | null;
+  rest_seconds: number | null;
+  notes: string | null;
+  exercises:
+    | { id: string; name: string; muscle_group: string | null }
+    | { id: string; name: string; muscle_group: string | null }[]
+    | null;
+  set_logs: SetLog[];
+};
 
 export default async function ClientWorkoutPage({
   params,
@@ -17,16 +41,16 @@ export default async function ClientWorkoutPage({
   const { data: workout } = await supabase
     .from("workouts")
     .select(
-      "id, name, scheduled_date, completed_at, notes, client_id, workout_exercises ( id, position, target_sets, target_reps, target_weight, rest_seconds, notes, exercises ( id, name, muscle_group ) )"
+      "id, name, scheduled_date, completed_at, notes, client_id, workout_exercises ( id, position, target_sets, target_reps, target_weight, rest_seconds, notes, exercises ( id, name, muscle_group ), set_logs ( id, set_number, reps, weight, notes, completed_at ) )"
     )
     .eq("id", id)
     .single();
 
   if (!workout || workout.client_id !== user!.id) notFound();
 
-  const exercises = [...(workout.workout_exercises ?? [])].sort(
-    (a, b) => a.position - b.position
-  );
+  const exercises: WorkoutExercise[] = [
+    ...(workout.workout_exercises ?? []),
+  ].sort((a, b) => a.position - b.position);
 
   // Last-time prescription per exercise (most recent prior workout that included it)
   const exerciseIds = exercises
@@ -91,7 +115,7 @@ export default async function ClientWorkoutPage({
           </p>
         ) : (
           <p className="mt-2 text-sm text-zinc-400">
-            Today&apos;s session — hit it and mark complete.
+            Log each set as you go. Hit complete when you&apos;re done.
           </p>
         )}
         {workout.notes && (
@@ -99,10 +123,18 @@ export default async function ClientWorkoutPage({
         )}
       </header>
 
-      <ol className="mt-8 space-y-3">
+      <ol className="mt-8 space-y-4">
         {exercises.map((we, idx) => {
-          const ex = Array.isArray(we.exercises) ? we.exercises[0] : we.exercises;
+          const ex = Array.isArray(we.exercises)
+            ? we.exercises[0]
+            : we.exercises;
           const last = ex ? lastByExercise.get(ex.id) : undefined;
+          const logs = [...(we.set_logs ?? [])].sort(
+            (a, b) => a.set_number - b.set_number
+          );
+          const logsByNumber = new Map(logs.map((l) => [l.set_number, l]));
+          const totalRows = Math.max(we.target_sets, ...logs.map((l) => l.set_number));
+
           return (
             <li
               key={we.id}
@@ -153,6 +185,39 @@ export default async function ClientWorkoutPage({
                   </span>
                 </p>
               )}
+
+              <div className="mt-5 space-y-2">
+                {Array.from({ length: totalRows }).map((_, i) => {
+                  const setNumber = i + 1;
+                  const log = logsByNumber.get(setNumber);
+                  return log ? (
+                    <LoggedSetRow
+                      key={setNumber}
+                      log={log}
+                      workoutId={id}
+                    />
+                  ) : (
+                    <EmptySetRow
+                      key={setNumber}
+                      workoutExerciseId={we.id}
+                      setNumber={setNumber}
+                      placeholderWeight={
+                        last?.weight ?? we.target_weight
+                      }
+                      placeholderReps={null}
+                    />
+                  );
+                })}
+
+                {/* Bonus set row */}
+                <EmptySetRow
+                  workoutExerciseId={we.id}
+                  setNumber={totalRows + 1}
+                  placeholderWeight={last?.weight ?? we.target_weight}
+                  placeholderReps={null}
+                  bonus
+                />
+              </div>
             </li>
           );
         })}
@@ -170,5 +235,126 @@ export default async function ClientWorkoutPage({
         </form>
       )}
     </div>
+  );
+}
+
+function LoggedSetRow({
+  log,
+  workoutId,
+}: {
+  log: SetLog;
+  workoutId: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-emerald-900/50 bg-emerald-950/20 px-4 py-3">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-emerald-700/60 bg-emerald-900/40 text-xs font-semibold text-emerald-200">
+        {log.set_number}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm text-white">
+          {log.weight !== null && (
+            <>
+              <span className="font-semibold">{log.weight}</span>
+              <span className="text-zinc-400"> lbs</span>
+            </>
+          )}
+          {log.weight !== null && log.reps !== null && (
+            <span className="text-zinc-500"> × </span>
+          )}
+          {log.reps !== null && (
+            <>
+              <span className="font-semibold">{log.reps}</span>
+              <span className="text-zinc-400"> reps</span>
+            </>
+          )}
+          {log.weight === null && log.reps === null && (
+            <span className="text-zinc-500">logged</span>
+          )}
+        </p>
+        {log.notes && (
+          <p className="mt-0.5 text-xs text-zinc-400">{log.notes}</p>
+        )}
+      </div>
+      <form action={clearSet}>
+        <input type="hidden" name="id" value={log.id} />
+        <input type="hidden" name="workout_id" value={workoutId} />
+        <button
+          type="submit"
+          aria-label={`Clear set ${log.set_number}`}
+          className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 hover:text-red-400"
+        >
+          Clear
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function EmptySetRow({
+  workoutExerciseId,
+  setNumber,
+  placeholderWeight,
+  placeholderReps,
+  bonus,
+}: {
+  workoutExerciseId: string;
+  setNumber: number;
+  placeholderWeight: number | null;
+  placeholderReps: number | null;
+  bonus?: boolean;
+}) {
+  const action = logSet.bind(null, workoutExerciseId, setNumber);
+  return (
+    <form
+      action={action}
+      className={`flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 ${
+        bonus
+          ? "border-dashed border-zinc-800 bg-black/20"
+          : "border-zinc-800 bg-black/40"
+      }`}
+    >
+      <span
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+          bonus
+            ? "border border-dashed border-zinc-700 text-zinc-500"
+            : "border border-zinc-700 bg-zinc-900 text-zinc-300"
+        }`}
+      >
+        {bonus ? "+" : setNumber}
+      </span>
+      <input
+        name="weight"
+        type="number"
+        inputMode="decimal"
+        step="0.5"
+        placeholder={
+          placeholderWeight !== null ? `${placeholderWeight}` : "lbs"
+        }
+        className="h-10 w-20 rounded-lg border border-zinc-800 bg-black px-2 text-base text-white placeholder-zinc-600 outline-none focus:border-gold-500"
+        aria-label="Weight"
+      />
+      <span className="text-zinc-600">×</span>
+      <input
+        name="reps"
+        type="number"
+        inputMode="numeric"
+        placeholder={placeholderReps !== null ? `${placeholderReps}` : "reps"}
+        className="h-10 w-20 rounded-lg border border-zinc-800 bg-black px-2 text-base text-white placeholder-zinc-600 outline-none focus:border-gold-500"
+        aria-label="Reps"
+      />
+      <input
+        name="notes"
+        type="text"
+        placeholder={bonus ? "Bonus set notes" : "Notes (optional)"}
+        className="h-10 min-w-0 flex-1 rounded-lg border border-zinc-800 bg-black px-3 text-sm text-white placeholder-zinc-600 outline-none focus:border-gold-500"
+        aria-label="Notes"
+      />
+      <button
+        type="submit"
+        className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-700 px-4 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-100 transition-colors hover:border-gold-400 hover:text-gold-400"
+      >
+        Save
+      </button>
+    </form>
   );
 }
