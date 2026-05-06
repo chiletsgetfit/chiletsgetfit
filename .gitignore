@@ -36,6 +36,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# original brand source files (kept locally in Dropbox; only public/brand/ is shipped)
+/brand/
+
+# local Claude config
+.claude/settings.local.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
