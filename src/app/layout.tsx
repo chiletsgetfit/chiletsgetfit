@@ -20,6 +20,18 @@ export const metadata: Metadata = {
   },
   description:
     "Personal training and online coaching that adapts to how you actually live — with nutrition guidance built in.",
+  applicationName: "ChiletsGetFit",
+  appleWebApp: {
+    capable: true,
+    title: "ChiletsGetFit",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   openGraph: {
     title: "ChiletsGetFit — Fitness & Nutrition Coaching",
     description:
