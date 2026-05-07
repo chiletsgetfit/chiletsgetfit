@@ -67,7 +67,8 @@ export default async function ClientWorkoutPage({
         .order("name")
     : { data: null };
 
-  // Last-time prescription per exercise (most recent prior workout that included it)
+  // Last-time *actual* logged sets per exercise (most recent prior completed
+  // workout where this exercise had at least one logged set).
   const exerciseIds = exercises
     .map((we) => {
       const ex = Array.isArray(we.exercises) ? we.exercises[0] : we.exercises;
@@ -75,32 +76,70 @@ export default async function ClientWorkoutPage({
     })
     .filter((x): x is string => Boolean(x));
 
+  type LastSet = {
+    set_number: number;
+    reps: number | null;
+    weight: number | null;
+    notes: string | null;
+  };
   const lastByExercise = new Map<
     string,
-    { date: string; sets: number; reps: string | null; weight: number | null }
+    { date: string; sets: LastSet[] }
   >();
-  if (exerciseIds.length > 0) {
-    const { data: priors } = await supabase
-      .from("workout_exercises")
-      .select(
-        "exercise_id, target_sets, target_reps, target_weight, workouts!inner ( id, completed_at, client_id )"
-      )
-      .eq("workouts.client_id", user!.id)
-      .in("exercise_id", exerciseIds)
-      .not("workouts.completed_at", "is", null)
-      .neq("workout_id", id)
-      .order("workouts(completed_at)", { ascending: false });
 
-    for (const row of priors ?? []) {
-      if (lastByExercise.has(row.exercise_id)) continue;
-      const w = Array.isArray(row.workouts) ? row.workouts[0] : row.workouts;
+  if (exerciseIds.length > 0) {
+    const { data: priorSets } = await supabase
+      .from("set_logs")
+      .select(
+        "set_number, reps, weight, notes, workout_exercises!inner ( exercise_id, workout_id, workouts!inner ( client_id, completed_at ) )"
+      )
+      .eq("workout_exercises.workouts.client_id", user!.id)
+      .in("workout_exercises.exercise_id", exerciseIds)
+      .neq("workout_exercises.workout_id", id)
+      .not("workout_exercises.workouts.completed_at", "is", null);
+
+    // Group rows by (exercise_id, workout_id), then pick the most recent
+    // workout per exercise.
+    const grouped = new Map<
+      string,
+      Map<string, { date: string; sets: LastSet[] }>
+    >();
+    for (const row of priorSets ?? []) {
+      const we = Array.isArray(row.workout_exercises)
+        ? row.workout_exercises[0]
+        : row.workout_exercises;
+      if (!we) continue;
+      const w = Array.isArray(we.workouts) ? we.workouts[0] : we.workouts;
       if (!w?.completed_at) continue;
-      lastByExercise.set(row.exercise_id, {
-        date: w.completed_at,
-        sets: row.target_sets,
-        reps: row.target_reps,
-        weight: row.target_weight,
+      const exId = we.exercise_id;
+      const wId = we.workout_id;
+      let byWorkout = grouped.get(exId);
+      if (!byWorkout) {
+        byWorkout = new Map();
+        grouped.set(exId, byWorkout);
+      }
+      let entry = byWorkout.get(wId);
+      if (!entry) {
+        entry = { date: w.completed_at, sets: [] };
+        byWorkout.set(wId, entry);
+      }
+      entry.sets.push({
+        set_number: row.set_number,
+        reps: row.reps,
+        weight: row.weight,
+        notes: row.notes,
       });
+    }
+
+    for (const [exId, byWorkout] of grouped) {
+      let best: { date: string; sets: LastSet[] } | null = null;
+      for (const entry of byWorkout.values()) {
+        if (!best || entry.date > best.date) best = entry;
+      }
+      if (best) {
+        best.sets.sort((a, b) => a.set_number - b.set_number);
+        lastByExercise.set(exId, best);
+      }
     }
   }
 
@@ -204,24 +243,45 @@ export default async function ClientWorkoutPage({
               {we.notes && (
                 <p className="mt-2 text-sm text-zinc-400">{we.notes}</p>
               )}
-              {last && (
-                <p className="mt-3 rounded-lg border border-zinc-800 bg-black/40 px-3 py-2 text-xs text-zinc-500">
-                  <span className="text-zinc-400">Last time:</span>{" "}
-                  {last.sets}x{last.reps ?? "?"}
-                  {last.weight !== null && ` @ ${last.weight} lbs`}{" "}
-                  <span className="text-zinc-600">
-                    ({new Date(last.date).toLocaleDateString(undefined, {
+              {last && last.sets.length > 0 && (
+                <div className="mt-3 rounded-lg border border-zinc-800 bg-black/40 px-3 py-2 text-xs">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    Last ·{" "}
+                    {new Date(last.date).toLocaleDateString(undefined, {
                       month: "short",
                       day: "numeric",
-                    })})
-                  </span>
-                </p>
+                    })}
+                  </p>
+                  <ul className="mt-1 space-y-0.5">
+                    {last.sets.map((s) => (
+                      <li key={s.set_number} className="text-zinc-400">
+                        <span className="text-zinc-600">{s.set_number}:</span>{" "}
+                        <span className="text-zinc-200">
+                          {s.weight !== null ? `${s.weight}` : "—"}
+                        </span>
+                        <span className="text-zinc-600"> × </span>
+                        <span className="text-zinc-200">
+                          {s.reps !== null ? `${s.reps}` : "—"}
+                        </span>
+                        {s.notes && (
+                          <span className="text-zinc-500">
+                            {" · "}
+                            <span className="italic">{s.notes}</span>
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
 
               <div className="mt-5 space-y-2">
                 {Array.from({ length: totalRows }).map((_, i) => {
                   const setNumber = i + 1;
                   const log = logsByNumber.get(setNumber);
+                  const lastSet = last?.sets.find(
+                    (s) => s.set_number === setNumber
+                  );
                   return log ? (
                     <LoggedSetRow
                       key={setNumber}
@@ -234,9 +294,9 @@ export default async function ClientWorkoutPage({
                       workoutExerciseId={we.id}
                       setNumber={setNumber}
                       placeholderWeight={
-                        last?.weight ?? we.target_weight
+                        lastSet?.weight ?? we.target_weight
                       }
-                      placeholderReps={null}
+                      placeholderReps={lastSet?.reps ?? null}
                     />
                   );
                 })}
@@ -245,8 +305,13 @@ export default async function ClientWorkoutPage({
                 <EmptySetRow
                   workoutExerciseId={we.id}
                   setNumber={totalRows + 1}
-                  placeholderWeight={last?.weight ?? we.target_weight}
-                  placeholderReps={null}
+                  placeholderWeight={
+                    last?.sets[last.sets.length - 1]?.weight ??
+                    we.target_weight
+                  }
+                  placeholderReps={
+                    last?.sets[last.sets.length - 1]?.reps ?? null
+                  }
                   bonus
                 />
               </div>
