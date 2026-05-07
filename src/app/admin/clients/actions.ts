@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendPush } from "@/lib/push";
 
 export type InviteState = { error?: string; success?: string };
 
@@ -108,6 +109,57 @@ export async function unassignProgram(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/admin/clients");
+}
+
+export type NudgeState = { error?: string; success?: string };
+
+export async function nudgeClient(
+  _prev: NudgeState,
+  formData: FormData
+): Promise<NudgeState> {
+  const clientId = String(formData.get("clientId") ?? "");
+  const message = String(formData.get("message") ?? "").trim();
+  if (!clientId) return { error: "Missing client." };
+
+  await ensureAdmin();
+  const supabase = await createClient();
+
+  const { data: subs, error } = await supabase
+    .from("push_subscriptions")
+    .select("endpoint, p256dh, auth")
+    .eq("user_id", clientId);
+  if (error) return { error: error.message };
+  if (!subs || subs.length === 0) {
+    return { error: "Client hasn't enabled notifications yet." };
+  }
+
+  const payload = {
+    title: "ChiletsGetFit",
+    body: message || "Time to train. Open the app when you're ready.",
+    url: "/app",
+    tag: "coach-nudge",
+  };
+
+  const results = await Promise.all(subs.map((s) => sendPush(s, payload)));
+
+  // Clean up subscriptions the push service says are gone.
+  const goneEndpoints = results
+    .filter((r) => !r.ok && r.gone)
+    .map((r) => r.endpoint);
+  if (goneEndpoints.length > 0) {
+    await supabase
+      .from("push_subscriptions")
+      .delete()
+      .in("endpoint", goneEndpoints);
+  }
+
+  const sent = results.filter((r) => r.ok).length;
+  if (sent === 0) {
+    return { error: "Could not deliver the nudge." };
+  }
+  return {
+    success: `Nudged ${sent} ${sent === 1 ? "device" : "devices"}.`,
+  };
 }
 
 export async function toggleClientActive(formData: FormData) {

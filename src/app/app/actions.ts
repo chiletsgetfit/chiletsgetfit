@@ -237,6 +237,36 @@ export async function removeExerciseFromMyWorkout(formData: FormData) {
   if (workoutId) revalidatePath(`/app/workouts/${workoutId}`);
 }
 
+type SubscriptionInput = {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+  userAgent?: string;
+};
+
+export async function savePushSubscription(sub: SubscriptionInput) {
+  const { supabase, user } = await ensureClient();
+  const { error } = await supabase.from("push_subscriptions").upsert(
+    {
+      user_id: user.id,
+      endpoint: sub.endpoint,
+      p256dh: sub.keys.p256dh,
+      auth: sub.keys.auth,
+      user_agent: sub.userAgent ?? null,
+    },
+    { onConflict: "user_id,endpoint" }
+  );
+  if (error) throw new Error(error.message);
+}
+
+export async function removePushSubscription(endpoint: string) {
+  const { supabase, user } = await ensureClient();
+  await supabase
+    .from("push_subscriptions")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("endpoint", endpoint);
+}
+
 export async function completeWorkout(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) throw new Error("Workout id required.");

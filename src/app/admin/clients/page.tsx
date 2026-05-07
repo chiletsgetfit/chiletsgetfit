@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { InviteForm } from "./InviteForm";
 import { assignProgram, toggleClientActive, unassignProgram } from "./actions";
+import { NudgeForm } from "./NudgeForm";
 
 export default async function ClientsPage() {
   const supabase = await createClient();
@@ -77,24 +78,27 @@ export default async function ClientsPage() {
                         )}
                       </div>
                     </div>
-                    <form action={toggleClientActive}>
-                      <input type="hidden" name="clientId" value={c.id} />
-                      <input
-                        type="hidden"
-                        name="active"
-                        value={(!c.active).toString()}
-                      />
-                      <button
-                        type="submit"
-                        className={`inline-flex h-9 items-center rounded-full border px-4 text-xs font-semibold uppercase tracking-[0.2em] transition-colors ${
-                          c.active
-                            ? "border-zinc-700 text-zinc-300 hover:border-red-700 hover:text-red-400"
-                            : "border-zinc-700 text-zinc-300 hover:border-emerald-600 hover:text-emerald-400"
-                        }`}
-                      >
-                        {c.active ? "Deactivate" : "Reactivate"}
-                      </button>
-                    </form>
+                    <div className="flex items-center gap-3">
+                      <NudgeForm clientId={c.id} />
+                      <form action={toggleClientActive}>
+                        <input type="hidden" name="clientId" value={c.id} />
+                        <input
+                          type="hidden"
+                          name="active"
+                          value={(!c.active).toString()}
+                        />
+                        <button
+                          type="submit"
+                          className={`inline-flex h-9 items-center rounded-full border px-4 text-xs font-semibold uppercase tracking-[0.2em] transition-colors ${
+                            c.active
+                              ? "border-zinc-700 text-zinc-300 hover:border-red-700 hover:text-red-400"
+                              : "border-zinc-700 text-zinc-300 hover:border-emerald-600 hover:text-emerald-400"
+                          }`}
+                        >
+                          {c.active ? "Deactivate" : "Reactivate"}
+                        </button>
+                      </form>
+                    </div>
                   </div>
 
                   <div className="mt-4 rounded-xl border border-zinc-800 bg-black/40 p-4">

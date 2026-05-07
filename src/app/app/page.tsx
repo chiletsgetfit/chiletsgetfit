@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { startCustomWorkout, startProgramDay } from "./actions";
+import { PushButton } from "./PushButton";
 
 function startOfWeek(d = new Date()) {
   const date = new Date(d);
@@ -35,6 +36,8 @@ export default async function ClientDashboard() {
     .is("ended_at", null)
     .maybeSingle();
 
+  const vapid = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
+
   if (!assignment) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
@@ -52,6 +55,12 @@ export default async function ClientDashboard() {
         <div className="mt-8">
           <CustomWorkoutCard />
         </div>
+
+        {vapid && (
+          <div className="mt-6">
+            <PushButton vapidPublicKey={vapid} />
+          </div>
+        )}
       </div>
     );
   }
@@ -238,6 +247,12 @@ export default async function ClientDashboard() {
         })}
         <CustomWorkoutCard />
       </div>
+
+      {vapid && (
+        <div className="mt-8">
+          <PushButton vapidPublicKey={vapid} />
+        </div>
+      )}
     </div>
   );
 }
