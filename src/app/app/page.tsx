@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { startCustomWorkout, startProgramDay } from "./actions";
 
@@ -91,6 +92,13 @@ export default async function ClientDashboard() {
       .map((w) => w.program_day_id)
       .filter((x): x is string => x !== null)
   );
+  // Most recent completed workout per program day (this week) → for "View last" link.
+  const lastWorkoutByDay = new Map<string, string>();
+  for (const w of weekWorkouts ?? []) {
+    if (w.program_day_id && !lastWorkoutByDay.has(w.program_day_id)) {
+      lastWorkoutByDay.set(w.program_day_id, w.id);
+    }
+  }
   const completedThisWeek = weekWorkouts?.length ?? 0;
   const target = assignment.target_per_week;
 
@@ -109,7 +117,12 @@ export default async function ClientDashboard() {
       {lastWorkout && (
         <p className="mt-2 text-sm text-zinc-400">
           You crushed{" "}
-          <span className="text-zinc-200">{lastWorkout.name}</span>{" "}
+          <Link
+            href={`/app/workouts/${lastWorkout.id}`}
+            className="text-zinc-200 underline decoration-zinc-700 underline-offset-4 hover:decoration-gold-400 hover:text-gold-400"
+          >
+            {lastWorkout.name}
+          </Link>{" "}
           {timeAgo(lastWorkout.completed_at!)}.
         </p>
       )}
@@ -146,7 +159,8 @@ export default async function ClientDashboard() {
           </p>
         ) : (
           <p className="mt-3 text-sm text-zinc-400">
-            All days done this week — go again or message your coach.
+            {target - completedThisWeek} more to hit your week — repeat a day
+            or do a custom workout.
           </p>
         )}
       </div>
@@ -159,53 +173,67 @@ export default async function ClientDashboard() {
         {(days ?? []).map((day) => {
           const done = doneDayIds.has(day.id);
           const recommended = recommendation?.id === day.id;
+          const lastWorkoutId = lastWorkoutByDay.get(day.id);
           return (
-            <form key={day.id} action={startProgramDay}>
-              <input
-                type="hidden"
-                name="program_day_id"
-                value={day.id}
-              />
-              <button
-                type="submit"
-                className={`group block w-full rounded-2xl border p-5 text-left transition-colors ${
-                  recommended
-                    ? "border-gold-500 bg-gold-500/5 hover:bg-gold-500/10"
-                    : done
-                      ? "border-zinc-800 bg-zinc-950 opacity-70 hover:opacity-100"
-                      : "border-zinc-800 bg-zinc-950 hover:border-gold-400"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-500">
-                      Day {day.position}
-                    </p>
-                    <p className="mt-1 text-lg font-semibold text-white">
-                      {day.name}
-                    </p>
-                  </div>
-                  {done ? (
-                    <span className="rounded-full border border-emerald-700/60 bg-emerald-950/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300">
-                      Done
-                    </span>
-                  ) : recommended ? (
-                    <span className="rounded-full border border-gold-500/60 bg-gold-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold-400">
-                      Up next
-                    </span>
-                  ) : null}
+            <div
+              key={day.id}
+              className={`flex flex-col rounded-2xl border p-5 transition-colors ${
+                recommended
+                  ? "border-gold-500 bg-gold-500/5"
+                  : done
+                    ? "border-zinc-800 bg-zinc-950"
+                    : "border-zinc-800 bg-zinc-950"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-500">
+                    Day {day.position}
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-white">
+                    {day.name}
+                  </p>
                 </div>
-                <span
-                  className={`mt-4 inline-block text-xs font-semibold uppercase tracking-[0.25em] ${
-                    recommended
-                      ? "text-gold-400 group-hover:text-gold-300"
-                      : "text-zinc-500 group-hover:text-gold-400"
-                  }`}
-                >
-                  {done ? "Do again" : "Start →"}
-                </span>
-              </button>
-            </form>
+                {done ? (
+                  <span className="rounded-full border border-emerald-700/60 bg-emerald-950/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300">
+                    Done
+                  </span>
+                ) : recommended ? (
+                  <span className="rounded-full border border-gold-500/60 bg-gold-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold-400">
+                    Up next
+                  </span>
+                ) : null}
+              </div>
+              <div className="mt-4 flex items-center justify-between gap-3">
+                {done && lastWorkoutId ? (
+                  <Link
+                    href={`/app/workouts/${lastWorkoutId}`}
+                    className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500 hover:text-gold-400"
+                  >
+                    View last
+                  </Link>
+                ) : (
+                  <span />
+                )}
+                <form action={startProgramDay}>
+                  <input
+                    type="hidden"
+                    name="program_day_id"
+                    value={day.id}
+                  />
+                  <button
+                    type="submit"
+                    className={`text-xs font-semibold uppercase tracking-[0.25em] ${
+                      recommended
+                        ? "text-gold-400 hover:text-gold-300"
+                        : "text-zinc-300 hover:text-gold-400"
+                    }`}
+                  >
+                    {done ? "Do again →" : "Start →"}
+                  </button>
+                </form>
+              </div>
+            </div>
           );
         })}
         <CustomWorkoutCard />
