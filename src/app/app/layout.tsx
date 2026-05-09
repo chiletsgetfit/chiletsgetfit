@@ -28,10 +28,10 @@ export default async function AppLayout({
   return (
     <div className="flex min-h-screen flex-col bg-black">
       <header className="sticky top-0 z-40 border-b border-zinc-900 bg-black/85 backdrop-blur supports-[backdrop-filter]:bg-black/60">
-        <div className="mx-auto flex h-20 w-full max-w-5xl items-center justify-between px-4 sm:h-24 sm:px-6">
+        <div className="mx-auto flex h-28 w-full max-w-5xl items-center justify-between px-4 sm:px-6">
           <Link href="/app" className="flex items-center" aria-label="ChiletsGetFit">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo.svg" alt="ChiletsGetFit" className="h-14 w-auto sm:h-16" />
+            <img src="/brand/logo.svg" alt="ChiletsGetFit" className="h-[72px] w-auto" />
           </Link>
           <nav className="flex items-center gap-4">
             {isAdmin && (
