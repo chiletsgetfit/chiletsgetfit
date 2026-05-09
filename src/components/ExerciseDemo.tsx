@@ -27,9 +27,47 @@ export function ExerciseDemo({
   alt: string;
 }) {
   const ytId = youtubeId(videoUrl);
-  if (ytId) return <YouTubeDemo ytId={ytId} alt={alt} />;
-  if (images && images.length > 0) return <GifDemo images={images} alt={alt} />;
-  return null;
+  const hasGif = images && images.length > 0;
+  const [expanded, setExpanded] = useState(false);
+
+  if (!ytId && !hasGif) return null;
+
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 hover:text-gold-400"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          className="h-3.5 w-3.5"
+          aria-hidden
+        >
+          <path d="M8 5v14l11-7z" />
+        </svg>
+        Show demo
+      </button>
+    );
+  }
+
+  return (
+    <div>
+      {ytId ? (
+        <YouTubeDemo ytId={ytId} alt={alt} />
+      ) : (
+        <GifDemo images={images} alt={alt} />
+      )}
+      <button
+        type="button"
+        onClick={() => setExpanded(false)}
+        className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 hover:text-zinc-200"
+      >
+        Hide demo
+      </button>
+    </div>
+  );
 }
 
 function YouTubeDemo({ ytId, alt }: { ytId: string; alt: string }) {
