@@ -55,6 +55,7 @@ type Defaults = {
   category?: string | null;
   instructions?: string | null;
   video_url?: string | null;
+  demo_images?: string[] | null;
 };
 
 export function ExerciseForm({
@@ -122,6 +123,19 @@ export function ExerciseForm({
         defaultValue={defaults.video_url ?? ""}
         placeholder="https://youtube.com/..."
       />
+
+      <div>
+        <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
+          Demo image URLs (one per line — first 2 animate as a tap-to-play GIF)
+        </label>
+        <textarea
+          name="demo_images"
+          rows={3}
+          defaultValue={(defaults.demo_images ?? []).join("\n")}
+          placeholder="https://.../start.jpg&#10;https://.../end.jpg"
+          className="mt-2 block w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-sm text-white placeholder-zinc-600 outline-none focus:border-gold-500"
+        />
+      </div>
 
       {state.error && (
         <p className="rounded-lg border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300">

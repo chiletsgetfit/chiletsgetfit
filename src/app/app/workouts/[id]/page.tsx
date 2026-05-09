@@ -8,6 +8,7 @@ import {
   removeExerciseFromMyWorkout,
 } from "../../actions";
 import { AddExerciseForm } from "./AddExerciseForm";
+import { ExerciseDemo } from "@/components/ExerciseDemo";
 
 type SetLog = {
   id: string;
@@ -18,6 +19,13 @@ type SetLog = {
   completed_at: string;
 };
 
+type ExerciseRel = {
+  id: string;
+  name: string;
+  muscle_group: string | null;
+  demo_images: string[] | null;
+};
+
 type WorkoutExercise = {
   id: string;
   position: number;
@@ -26,10 +34,7 @@ type WorkoutExercise = {
   target_weight: number | null;
   rest_seconds: number | null;
   notes: string | null;
-  exercises:
-    | { id: string; name: string; muscle_group: string | null }
-    | { id: string; name: string; muscle_group: string | null }[]
-    | null;
+  exercises: ExerciseRel | ExerciseRel[] | null;
   set_logs: SetLog[];
 };
 
@@ -47,7 +52,7 @@ export default async function ClientWorkoutPage({
   const { data: workout } = await supabase
     .from("workouts")
     .select(
-      "id, name, scheduled_date, completed_at, notes, client_id, workout_exercises ( id, position, target_sets, target_reps, target_weight, rest_seconds, notes, exercises ( id, name, muscle_group ), set_logs ( id, set_number, reps, weight, notes, completed_at ) )"
+      "id, name, scheduled_date, completed_at, notes, client_id, workout_exercises ( id, position, target_sets, target_reps, target_weight, rest_seconds, notes, exercises ( id, name, muscle_group, demo_images ), set_logs ( id, set_number, reps, weight, notes, completed_at ) )"
     )
     .eq("id", id)
     .single();
@@ -273,6 +278,13 @@ export default async function ClientWorkoutPage({
                     ))}
                   </ul>
                 </div>
+              )}
+
+              {ex?.demo_images && ex.demo_images.length > 0 && (
+                <ExerciseDemo
+                  images={ex.demo_images}
+                  alt={ex.name ?? "exercise"}
+                />
               )}
 
               <div className="mt-5 space-y-2">

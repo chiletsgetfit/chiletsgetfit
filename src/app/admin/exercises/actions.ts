@@ -30,7 +30,19 @@ function readForm(formData: FormData) {
   const instructions =
     String(formData.get("instructions") ?? "").trim() || null;
   const video_url = String(formData.get("video_url") ?? "").trim() || null;
-  return { name, muscle_group, equipment, category, instructions, video_url };
+  const demo_images = String(formData.get("demo_images") ?? "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  return {
+    name,
+    muscle_group,
+    equipment,
+    category,
+    instructions,
+    video_url,
+    demo_images,
+  };
 }
 
 export async function createExercise(
