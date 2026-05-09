@@ -25,7 +25,7 @@ export default async function AdminLayout({
   return (
     <div className="flex min-h-screen flex-col bg-black">
       <header className="sticky top-0 z-40 border-b border-zinc-900 bg-black/85 backdrop-blur supports-[backdrop-filter]:bg-black/60">
-        <div className="mx-auto flex h-28 w-full max-w-5xl items-center justify-between px-4 sm:px-6">
+        <div className="mx-auto flex h-20 w-full max-w-5xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center" aria-label="ChiletsGetFit">
               {/* eslint-disable-next-line @next/next/no-img-element */}
