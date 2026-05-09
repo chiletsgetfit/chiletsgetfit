@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch",
+      "Bash(node scripts/youtube-curate.mjs)",
+      "Bash(node scripts/youtube-curate.mjs *)",
+      "Bash(node scripts/curate-youtube.mjs)",
+      "Bash(node scripts/curate-youtube.mjs *)",
+      "Bash(node scripts/list-unmatched.mjs)",
+      "Bash(curl -sI https://www.youtube.com/*)",
+      "Bash(curl -sI https://youtu.be/*)",
+      "Bash(curl -sI https://i.ytimg.com/*)"
+    ]
+  }
+}
