@@ -9,6 +9,7 @@ import {
 } from "../../actions";
 import { AddExerciseForm } from "./AddExerciseForm";
 import { ExerciseDemo } from "@/components/ExerciseDemo";
+import { WorkoutTitle } from "./WorkoutTitle";
 
 type SetLog = {
   id: string;
@@ -159,9 +160,7 @@ export default async function ClientWorkoutPage({
       </Link>
 
       <header className="mt-4">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          {workout.name}
-        </h1>
+        <WorkoutTitle workoutId={id} defaultName={workout.name} />
         {workout.completed_at ? (
           <p className="mt-2 text-sm text-emerald-300">
             Completed{" "}

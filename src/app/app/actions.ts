@@ -267,6 +267,30 @@ export async function removePushSubscription(endpoint: string) {
     .eq("endpoint", endpoint);
 }
 
+export type RenameState = { error?: string; ok?: boolean };
+
+export async function renameWorkout(
+  workoutId: string,
+  _prev: RenameState,
+  formData: FormData
+): Promise<RenameState> {
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return { error: "Name can't be empty." };
+  if (name.length > 80) return { error: "Keep it under 80 characters." };
+
+  const { supabase, user } = await ensureClient();
+  const { error } = await supabase
+    .from("workouts")
+    .update({ name })
+    .eq("id", workoutId)
+    .eq("client_id", user.id);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/app/workouts/${workoutId}`);
+  revalidatePath("/app/history");
+  return { ok: true };
+}
+
 export async function completeWorkout(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) throw new Error("Workout id required.");
