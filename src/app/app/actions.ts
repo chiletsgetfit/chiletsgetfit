@@ -291,6 +291,135 @@ export async function renameWorkout(
   return { ok: true };
 }
 
+export type SaveTemplateState = { error?: string; ok?: boolean };
+
+export async function saveWorkoutAsTemplate(
+  workoutId: string,
+  _prev: SaveTemplateState,
+  formData: FormData
+): Promise<SaveTemplateState> {
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return { error: "Name is required." };
+  if (name.length > 80) return { error: "Keep it under 80 characters." };
+
+  const { supabase, user } = await ensureClient();
+
+  const { data: workout } = await supabase
+    .from("workouts")
+    .select("client_id")
+    .eq("id", workoutId)
+    .single();
+  if (!workout || workout.client_id !== user.id) {
+    return { error: "Not your workout." };
+  }
+
+  const { data: saved, error: savedErr } = await supabase
+    .from("saved_client_workouts")
+    .insert({ client_id: user.id, name })
+    .select("id")
+    .single();
+  if (savedErr || !saved) {
+    return { error: savedErr?.message ?? "Could not save." };
+  }
+
+  const { data: exercises } = await supabase
+    .from("workout_exercises")
+    .select(
+      "exercise_id, position, target_sets, target_reps, target_weight, rest_seconds, notes"
+    )
+    .eq("workout_id", workoutId)
+    .order("position");
+
+  if (exercises && exercises.length > 0) {
+    const rows = exercises.map((e) => ({
+      saved_workout_id: saved.id,
+      exercise_id: e.exercise_id,
+      position: e.position,
+      target_sets: e.target_sets,
+      target_reps: e.target_reps,
+      target_weight: e.target_weight,
+      rest_seconds: e.rest_seconds,
+      notes: e.notes,
+    }));
+    const { error: insertErr } = await supabase
+      .from("saved_client_workout_exercises")
+      .insert(rows);
+    if (insertErr) {
+      // Roll back the empty parent so the user can retry cleanly.
+      await supabase.from("saved_client_workouts").delete().eq("id", saved.id);
+      return { error: insertErr.message };
+    }
+  }
+
+  revalidatePath("/app");
+  return { ok: true };
+}
+
+export async function startSavedWorkout(formData: FormData) {
+  const savedWorkoutId = String(formData.get("saved_workout_id") ?? "");
+  if (!savedWorkoutId) throw new Error("Missing saved workout.");
+
+  const { supabase, user } = await ensureClient();
+
+  const { data: saved } = await supabase
+    .from("saved_client_workouts")
+    .select("id, name, client_id")
+    .eq("id", savedWorkoutId)
+    .single();
+  if (!saved || saved.client_id !== user.id) throw new Error("Not yours.");
+
+  const { data: workout, error } = await supabase
+    .from("workouts")
+    .insert({
+      client_id: user.id,
+      created_by: user.id,
+      name: saved.name,
+      scheduled_date: new Date().toISOString().slice(0, 10),
+    })
+    .select("id")
+    .single();
+  if (error || !workout) {
+    throw new Error(error?.message ?? "Could not start workout.");
+  }
+
+  const { data: savedExercises } = await supabase
+    .from("saved_client_workout_exercises")
+    .select(
+      "exercise_id, position, target_sets, target_reps, target_weight, rest_seconds, notes"
+    )
+    .eq("saved_workout_id", savedWorkoutId)
+    .order("position");
+
+  if (savedExercises && savedExercises.length > 0) {
+    const rows = savedExercises.map((e) => ({
+      workout_id: workout.id,
+      exercise_id: e.exercise_id,
+      position: e.position,
+      target_sets: e.target_sets,
+      target_reps: e.target_reps,
+      target_weight: e.target_weight,
+      rest_seconds: e.rest_seconds,
+      notes: e.notes,
+    }));
+    await supabase.from("workout_exercises").insert(rows);
+  }
+
+  revalidatePath("/app");
+  redirect(`/app/workouts/${workout.id}`);
+}
+
+export async function deleteSavedWorkout(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  const { supabase, user } = await ensureClient();
+  await supabase
+    .from("saved_client_workouts")
+    .delete()
+    .eq("id", id)
+    .eq("client_id", user.id);
+  revalidatePath("/app");
+}
+
 export async function completeWorkout(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) throw new Error("Workout id required.");

@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { startCustomWorkout, startProgramDay } from "./actions";
+import {
+  deleteSavedWorkout,
+  startCustomWorkout,
+  startProgramDay,
+  startSavedWorkout,
+} from "./actions";
 import { PushButton } from "./PushButton";
 
 function startOfWeek(d = new Date()) {
@@ -38,6 +43,14 @@ export default async function ClientDashboard() {
 
   const vapid = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
+  // Saved templates the client built themselves.
+  const { data: savedTemplates } = await supabase
+    .from("saved_client_workouts")
+    .select("id, name, created_at")
+    .eq("client_id", user!.id)
+    .order("created_at", { ascending: false });
+  const templates = savedTemplates ?? [];
+
   if (!assignment) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
@@ -52,7 +65,10 @@ export default async function ClientDashboard() {
           custom workout below.
         </p>
 
-        <div className="mt-8">
+        <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          {templates.map((t) => (
+            <SavedWorkoutCard key={t.id} id={t.id} name={t.name} />
+          ))}
           <CustomWorkoutCard />
         </div>
 
@@ -254,6 +270,9 @@ export default async function ClientDashboard() {
             </div>
           );
         })}
+        {templates.map((t) => (
+          <SavedWorkoutCard key={t.id} id={t.id} name={t.name} />
+        ))}
         <CustomWorkoutCard />
       </div>
 
@@ -293,6 +312,40 @@ function CustomWorkoutCard() {
         </span>
       </button>
     </form>
+  );
+}
+
+function SavedWorkoutCard({ id, name }: { id: string; name: string }) {
+  return (
+    <div className="flex flex-col rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-500">
+            Saved
+          </p>
+          <p className="mt-1 text-lg font-semibold text-white">{name}</p>
+        </div>
+        <form action={deleteSavedWorkout}>
+          <input type="hidden" name="id" value={id} />
+          <button
+            type="submit"
+            aria-label={`Delete saved workout ${name}`}
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600 hover:text-red-400"
+          >
+            Delete
+          </button>
+        </form>
+      </div>
+      <form action={startSavedWorkout} className="mt-4">
+        <input type="hidden" name="saved_workout_id" value={id} />
+        <button
+          type="submit"
+          className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-300 hover:text-gold-400"
+        >
+          Start →
+        </button>
+      </form>
+    </div>
   );
 }
 

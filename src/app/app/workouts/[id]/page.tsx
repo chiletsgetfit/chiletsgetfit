@@ -10,6 +10,7 @@ import {
 import { AddExerciseForm } from "./AddExerciseForm";
 import { ExerciseDemo } from "@/components/ExerciseDemo";
 import { WorkoutTitle } from "./WorkoutTitle";
+import { SaveTemplateForm } from "./SaveTemplateForm";
 
 type SetLog = {
   id: string;
@@ -336,6 +337,12 @@ export default async function ClientWorkoutPage({
       {inProgress && (
         <div className="mt-6">
           <AddExerciseForm workoutId={id} exercises={library ?? []} />
+        </div>
+      )}
+
+      {exercises.length > 0 && (
+        <div className="mt-6">
+          <SaveTemplateForm workoutId={id} defaultName={workout.name} />
         </div>
       )}
 
