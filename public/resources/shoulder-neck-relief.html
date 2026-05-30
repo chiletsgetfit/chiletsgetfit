@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+  <title>Shoulder & Neck Relief · ChiletsGetFit</title>
+  <meta name="description" content="A daily routine for shoulder, shoulder blade, and neck tightness." />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <style>
+    :root {
+      --gold: #c0a576;
+      --gold-light: #e8d3a6;
+      --bg: #000;
+      --card: #0a0a0a;
+      --border: #1f1f1f;
+      --text: #ffffff;
+      --muted: #a1a1aa;
+      --dim: #71717a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--text); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      padding: 32px 20px 80px;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+    .brand svg { height: 40px; width: auto; }
+    .brand-text { font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold); font-weight: 600; }
+    h1 {
+      font-size: clamp(28px, 5vw, 36px);
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+    .intro {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .pill {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--gold);
+      background: rgba(192, 165, 118, 0.08);
+      border: 1px solid rgba(192, 165, 118, 0.4);
+      padding: 6px 12px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+    section { margin-top: 40px; }
+    h2 {
+      font-size: 13px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px;
+      margin-bottom: 14px;
+    }
+    .card-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .card-num {
+      font-size: 11px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--dim);
+      font-weight: 600;
+    }
+    .card-dose {
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 600;
+    }
+    .card h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .card p { color: var(--muted); font-size: 14.5px; }
+    .card p + p { margin-top: 8px; }
+    .key { color: #fcd34d; font-weight: 500; }
+    .video {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      margin-top: 14px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #050505;
+    }
+    .video iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+    .video-toggle {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: #050505;
+      color: var(--gold);
+      border: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font: inherit;
+      font-size: 12px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      font-weight: 600;
+      transition: background-color .15s ease;
+    }
+    .video-toggle:hover { background: #0d0d0d; }
+    .video-thumb {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    .video-toggle .play-icon {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.55);
+      padding: 12px 22px;
+      border-radius: 999px;
+      backdrop-filter: blur(4px);
+    }
+    .play-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--gold);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #000;
+    }
+    .play-circle svg { width: 14px; height: 14px; transform: translateX(1px); }
+    .programming-note {
+      background: linear-gradient(180deg, rgba(192, 165, 118, 0.06), rgba(192, 165, 118, 0.02));
+      border: 1px solid rgba(192, 165, 118, 0.3);
+      border-radius: 18px;
+      padding: 22px;
+    }
+    .programming-note h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+    .programming-note ul { padding-left: 20px; }
+    .programming-note li { color: var(--muted); margin: 6px 0; font-size: 14.5px; }
+    .red-flag {
+      background: rgba(120, 30, 30, 0.15);
+      border: 1px solid rgba(180, 60, 60, 0.4);
+      border-radius: 18px;
+      padding: 22px;
+      color: #fecaca;
+      font-size: 14.5px;
+    }
+    .red-flag h3 { color: #fca5a5; font-size: 14px; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 12px; }
+    .red-flag ul { padding-left: 20px; }
+    .red-flag li { margin: 6px 0; }
+    footer {
+      margin-top: 56px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      color: var(--dim);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-align: center;
+    }
+    footer a { color: var(--gold); text-decoration: none; }
+    footer a:hover { color: var(--gold-light); }
+    @media (max-width: 480px) {
+      body { padding: 24px 16px 60px; }
+      .card { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+        <path d="M50 15 L85 35 L85 75 L50 95 L15 75 L15 35 Z" stroke="#c0a576" stroke-width="3"/>
+        <text x="50" y="62" text-anchor="middle" fill="#c0a576" font-size="38" font-weight="700" font-family="Georgia, serif">C</text>
+      </svg>
+      <span class="brand-text">ChiletsGetFit</span>
+    </div>
+
+    <span class="pill">For: Shoulder · Shoulder blade · Neck</span>
+    <h1>Shoulder & neck relief routine</h1>
+    <p class="intro">
+      A 5–10 minute daily routine for the tightness behind your shoulder blade
+      that creeps up into your shoulder and neck. Tap any video to play.
+      Most people feel a noticeable difference within 1–2 weeks of
+      consistent daily work.
+    </p>
+
+    <section>
+      <h2>The stretches</h2>
+
+      <article class="card">
+        <div class="card-head">
+          <span class="card-num">01 · The most important one</span>
+          <span class="card-dose">30–45 sec × 2 each side</span>
+        </div>
+        <h3>Levator scapulae stretch</h3>
+        <p>
+          Sit tall. <span class="key">Turn your head ~45° away from the side that hurts</span>,
+          looking down toward your armpit. Use the opposite hand to gently pull
+          your head down and forward. You should feel it from the side of the
+          neck down to the inside corner of the shoulder blade — that's the
+          exact spot you're targeting.
+        </p>
+        <p>Don't shrug. Keep the shoulder you're stretching pulled down.</p>
+        <div class="video" data-yt="U9tijfMcfP8" data-title="Levator scapulae stretch"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <span class="card-num">02</span>
+          <span class="card-dose">30 sec × 2 each side</span>
+        </div>
+        <h3>Upper trap stretch</h3>
+        <p>
+          Sit on your right hand to anchor the right shoulder down. Tilt your
+          left ear toward your left shoulder. Gentle left-hand assist on the
+          right side of your head. Switch sides.
+        </p>
+        <div class="video" data-yt="yho44869qPw" data-title="Upper trap stretch"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <span class="card-num">03</span>
+          <span class="card-dose">30 sec at each of 3 angles, both sides</span>
+        </div>
+        <h3>Doorway pec stretch (3 angles)</h3>
+        <p>
+          Forearm on the doorframe, elbow at shoulder height, step through
+          until you feel a stretch in the front of your chest.
+        </p>
+        <p>
+          Do <span class="key">three angles</span>: elbow low (~60°) hits pec
+          minor — this is often the hidden culprit pulling your shoulder
+          forward. Elbow at shoulder height (90°) hits the main pec. Elbow
+          high (~120°) hits the upper fibers.
+        </p>
+        <div class="video" data-yt="M850sCj9LHQ" data-title="Doorway pec stretch"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <span class="card-num">04</span>
+          <span class="card-dose">30 sec × 2 each side</span>
+        </div>
+        <h3>Cross-body posterior shoulder stretch</h3>
+        <p>
+          Bring one arm across your chest, use the other hand to pull the elbow
+          closer. <span class="key">Keep the shoulder blade pulled back</span> —
+          don't let it roll forward, otherwise you're stretching the wrong
+          muscles.
+        </p>
+        <div class="video" data-yt="swvXpKN832E" data-title="Cross-body posterior shoulder stretch"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <span class="card-num">05</span>
+          <span class="card-dose">30 sec × 2 each side</span>
+        </div>
+        <h3>Thread the needle</h3>
+        <p>
+          On hands and knees. Slide your right arm under and across your body,
+          letting your right shoulder and ear settle toward the floor. This
+          unwinds the rhomboids and posterior shoulder.
+        </p>
+        <div class="video" data-yt="MfUx9FCOb1E" data-title="Thread the needle stretch"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <span class="card-num">06</span>
+          <span class="card-dose">10 slow reps</span>
+        </div>
+        <h3>Cat-cow + thoracic rotation</h3>
+        <p>
+          Quadruped. Slow cat-cow for 10 reps. Then put one hand behind your
+          head and rotate that elbow up toward the ceiling 10 times each side.
+        </p>
+        <p>
+          When your upper back is stiff, your neck and shoulders pick up the
+          slack. Fixing this is half the battle.
+        </p>
+        <div class="video" data-yt="TAw2y7ViCmc" data-title="Cat-cow stretch"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <span class="card-num">07 · active reset</span>
+          <span class="card-dose">10 reps</span>
+        </div>
+        <h3>Wall slides</h3>
+        <p>
+          Back flat against a wall. Arms in a "W" pressed against the wall.
+          Slide up to a "Y" and back down. Keep the lower back from arching
+          off the wall.
+        </p>
+        <div class="video" data-yt="UB_n4DxOTCo" data-title="Wall slides"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <span class="card-num">08 · active reset</span>
+          <span class="card-dose">15–20 reps</span>
+        </div>
+        <h3>Band pull-aparts</h3>
+        <p>
+          Light band, arms straight, pull the band apart at chest height
+          until it touches your sternum. Squeeze the shoulder blades together.
+          Free upper-back insurance.
+        </p>
+        <div class="video" data-yt="WqdNDTTe-9g" data-title="Band pull aparts"></div>
+      </article>
+    </section>
+
+    <section>
+      <h2>Training tweaks (the real long-term fix)</h2>
+      <div class="programming-note">
+        <h3>Stretching helps. Programming is what actually fixes it.</h3>
+        <ul>
+          <li>For every horizontal press (bench, push-up), do <strong>2 horizontal pulls</strong> (rows). Bias the pulling.</li>
+          <li>Add <strong>2–3 sets of face pulls</strong> to every upper-body session — cheap insurance for shoulder/rotator-cuff health.</li>
+          <li>If overhead press aggravates it, swap to <strong>landmine press</strong> for a few weeks — same pattern, friendlier shoulder position.</li>
+          <li>External rotation work (band or cable) 2x/week, 15 reps, light. Wakes up the rotator cuff.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>When to see a physical therapist</h2>
+      <div class="red-flag">
+        <h3>Red flags</h3>
+        <ul>
+          <li>Pain <strong>radiates into the arm</strong>, especially with numbness, tingling, or weakness in the hand.</li>
+          <li>Sharp pain during normal range of motion — not the stretches themselves, but during daily activity.</li>
+          <li>No improvement after <strong>2–3 weeks</strong> of consistent stretching and the programming tweaks above.</li>
+        </ul>
+      </div>
+    </section>
+
+    <footer>
+      <p>Built for you by <a href="https://chiletsgetfit.com">ChiletsGetFit</a> · Questions? Message your coach.</p>
+    </footer>
+  </div>
+
+  <script>
+    // Lazy-load YouTube iframes only when tapped. Keeps the page snappy.
+    document.querySelectorAll('.video[data-yt]').forEach((el) => {
+      const ytId = el.dataset.yt;
+      const title = el.dataset.title || 'demo';
+      const thumb = document.createElement('img');
+      thumb.src = 'https://i.ytimg.com/vi/' + ytId + '/hqdefault.jpg';
+      thumb.alt = title;
+      thumb.className = 'video-thumb';
+      thumb.loading = 'lazy';
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'video-toggle';
+      btn.setAttribute('aria-label', 'Play ' + title);
+      btn.innerHTML = '<span class="play-icon"><span class="play-circle"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg></span>Play demo</span>';
+
+      el.appendChild(thumb);
+      el.appendChild(btn);
+
+      btn.addEventListener('click', () => {
+        const iframe = document.createElement('iframe');
+        iframe.src = 'https://www.youtube.com/embed/' + ytId + '?autoplay=1&rel=0&modestbranding=1';
+        iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+        iframe.allowFullscreen = true;
+        iframe.title = title;
+        el.innerHTML = '';
+        el.appendChild(iframe);
+      });
+    });
+  </script>
+</body>
+</html>
