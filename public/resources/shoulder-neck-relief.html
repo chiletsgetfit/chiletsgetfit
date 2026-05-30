@@ -26,9 +26,8 @@
       padding: 32px 20px 80px;
     }
     .wrap { max-width: 720px; margin: 0 auto; }
-    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
-    .brand svg { height: 40px; width: auto; }
-    .brand-text { font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold); font-weight: 600; }
+    .brand { display: flex; align-items: center; margin-bottom: 28px; }
+    .brand img { height: 56px; width: auto; }
     h1 {
       font-size: clamp(28px, 5vw, 36px);
       line-height: 1.15;
@@ -207,13 +206,9 @@
 </head>
 <body>
   <div class="wrap">
-    <div class="brand">
-      <svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
-        <path d="M50 15 L85 35 L85 75 L50 95 L15 75 L15 35 Z" stroke="#c0a576" stroke-width="3"/>
-        <text x="50" y="62" text-anchor="middle" fill="#c0a576" font-size="38" font-weight="700" font-family="Georgia, serif">C</text>
-      </svg>
-      <span class="brand-text">ChiletsGetFit</span>
-    </div>
+    <a href="/" class="brand" aria-label="ChiletsGetFit home">
+      <img src="/brand/logo.svg" alt="ChiletsGetFit" />
+    </a>
 
     <span class="pill">For: Shoulder · Shoulder blade · Neck</span>
     <h1>Shoulder & neck relief routine</h1>
