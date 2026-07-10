@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+  <title>SIBO — What It Is & What Actually Works · ChiletsGetFit</title>
+  <meta name="description" content="A plain-English guide to Small Intestinal Bacterial Overgrowth: symptoms, diagnosis, evidence-based treatment options." />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <style>
+    :root {
+      --gold: #c0a576;
+      --gold-light: #e8d3a6;
+      --bg: #000;
+      --card: #0a0a0a;
+      --border: #1f1f1f;
+      --text: #ffffff;
+      --muted: #a1a1aa;
+      --dim: #71717a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--text); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding: 32px 20px 80px;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    .brand { display: flex; align-items: center; margin-bottom: 28px; }
+    .brand img { height: 56px; width: auto; }
+    h1 {
+      font-size: clamp(28px, 5vw, 36px);
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+    .intro {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .pill {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--gold);
+      background: rgba(192, 165, 118, 0.08);
+      border: 1px solid rgba(192, 165, 118, 0.4);
+      padding: 6px 12px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+    section { margin-top: 40px; }
+    h2 {
+      font-size: 13px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    p { color: var(--muted); font-size: 15px; margin-top: 10px; }
+    strong { color: var(--text); font-weight: 600; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px;
+      margin-bottom: 14px;
+    }
+    .card p:first-child { margin-top: 0; }
+    ul, ol { padding-left: 22px; margin-top: 10px; }
+    li { color: var(--muted); margin: 6px 0; font-size: 15px; }
+    li strong { color: var(--text); }
+    .key { color: #fcd34d; font-weight: 500; }
+    .metric {
+      display: inline-block;
+      background: rgba(192, 165, 118, 0.1);
+      border: 1px solid rgba(192, 165, 118, 0.3);
+      color: var(--gold-light);
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .callout {
+      background: linear-gradient(180deg, rgba(192, 165, 118, 0.06), rgba(192, 165, 118, 0.02));
+      border: 1px solid rgba(192, 165, 118, 0.3);
+      border-radius: 18px;
+      padding: 22px;
+    }
+    .callout h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+    .red-flag {
+      background: rgba(120, 30, 30, 0.15);
+      border: 1px solid rgba(180, 60, 60, 0.4);
+      border-radius: 18px;
+      padding: 22px;
+      color: #fecaca;
+      font-size: 14.5px;
+    }
+    .red-flag h3 { color: #fca5a5; font-size: 14px; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 12px; }
+    .red-flag ul { padding-left: 20px; }
+    .red-flag li { color: #fecaca; }
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-top: 12px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      min-width: 500px;
+    }
+    thead { background: rgba(192, 165, 118, 0.08); }
+    th, td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 600;
+    }
+    td { color: var(--muted); }
+    td:first-child { color: var(--text); font-weight: 500; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .disclaimer {
+      background: rgba(30, 30, 30, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 13px;
+      color: var(--dim);
+      margin-top: 30px;
+    }
+    footer {
+      margin-top: 56px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      color: var(--dim);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-align: center;
+    }
+    footer a { color: var(--gold); text-decoration: none; }
+    footer a:hover { color: var(--gold-light); }
+    @media (max-width: 480px) {
+      body { padding: 24px 16px 60px; }
+      .card, .callout, .red-flag { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a href="/" class="brand" aria-label="ChiletsGetFit home">
+      <img src="/brand/logo.svg" alt="ChiletsGetFit" />
+    </a>
+
+    <span class="pill">Client resource · Gut Health</span>
+    <h1>SIBO — What it is & what actually works</h1>
+    <p class="intro">
+      SIBO (Small Intestinal Bacterial Overgrowth) is when bacteria that
+      normally live in your colon overgrow in your small intestine. It's
+      surprisingly common, often missed, and highly treatable once you know
+      what you're dealing with. Here's the plain-English version.
+    </p>
+
+    <section>
+      <h2>Am I likely to have it?</h2>
+      <div class="card">
+        <p>
+          SIBO often gets misdiagnosed as IBS. If a bunch of these sound like
+          you — <span class="key">and they don't go away</span> — SIBO is
+          worth ruling out:
+        </p>
+        <ul>
+          <li>Bloating that gets worse throughout the day (worst after meals)</li>
+          <li>Gas that started or got dramatically worse in the last 6-24 months</li>
+          <li>Alternating diarrhea and constipation, or one or the other consistently</li>
+          <li>Feeling full after just a few bites</li>
+          <li>Food sensitivities that keep piling up (things you used to tolerate now bother you)</li>
+          <li>Fatigue after meals</li>
+          <li>B12 deficiency without a clear reason</li>
+        </ul>
+        <p>
+          <strong>Risk factors that make SIBO more likely:</strong> long-term
+          PPI use (Prilosec, Nexium), a stomach bug you never fully recovered
+          from, prior abdominal surgery, hypothyroidism, diabetes,
+          endometriosis, opioid painkillers.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2>How you actually get diagnosed</h2>
+      <div class="card">
+        <h3>The breath test</h3>
+        <p>
+          The standard tool is a <strong>lactulose or glucose breath test</strong>.
+          You drink a sugar solution and blow into a bag every 15-20 min for
+          3 hours. Bacteria in your small intestine (that shouldn't be there)
+          ferment the sugar and produce hydrogen and/or methane, which show up
+          on the test.
+        </p>
+        <p>
+          Ask a functional-medicine MD, gastroenterologist, or a naturopath
+          about ordering it. Kits like <em>trio-smart</em> (hydrogen + methane
+          + hydrogen sulfide) mail directly to your house — ~$350 out of
+          pocket. Insurance sometimes covers it, sometimes doesn't.
+        </p>
+        <p>
+          There are three subtypes based on which gas shows up. They matter
+          because they have different symptoms and respond to different
+          treatments:
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Main symptoms</th>
+                <th>Best treated with</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Hydrogen (H₂)</td>
+                <td>Diarrhea, cramping, urgency</td>
+                <td>Rifaximin or elemental diet</td>
+              </tr>
+              <tr>
+                <td>Methane (IMO)</td>
+                <td>Constipation, weight gain</td>
+                <td>Rifaximin <em>plus</em> neomycin or metronidazole</td>
+              </tr>
+              <tr>
+                <td>Hydrogen sulfide (H₂S)</td>
+                <td>Sulfur-smelling gas, diarrhea, food sensitivities</td>
+                <td>Bismuth protocols + elemental diet</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Treatment — what actually works</h2>
+
+      <div class="card">
+        <h3>1. Rifaximin (prescription antibiotic) <span class="metric">~71% success</span></h3>
+        <p>
+          The most-studied option. <strong>550mg 3x/day for 14 days</strong>.
+          Doesn't get absorbed into the bloodstream — stays in the gut, kills
+          the overgrown bacteria, spares the "good" bacteria in the colon
+          better than most antibiotics. For methane-dominant, doctors often
+          add neomycin.
+        </p>
+        <p>
+          <span class="key">Downside:</span> expensive if insurance denies it
+          ($1,200-2,000 out of pocket), and recurrence is common if you don't
+          address the root cause (see below).
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>2. Elemental diet <span class="metric">80-85% success</span></h3>
+        <p>
+          The most effective treatment in trials, but the hardest to actually do.
+          You drink pre-digested medical nutrition (Physicians Elemental Diet,
+          Kate Farms, or Vivonex) for <strong>14-21 days straight</strong>.
+          Nothing else. No food. Bacteria in your small intestine starve because
+          the nutrients get absorbed before reaching them.
+        </p>
+        <p>
+          <span class="key">Downside:</span> boring, expensive ($400-800/week),
+          hunger, mood dips. Cedars-Sinai released a more-palatable version in
+          2025 — worth asking about if your doctor is up to date.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>3. Herbal antimicrobials <span class="metric">~46% success</span></h3>
+        <p>
+          A middle ground. Berberine, oregano oil, allicin (from garlic),
+          neem, and cinnamon in specific combinations, for
+          <strong>4-6 weeks</strong>. Success rate is lower than rifaximin but
+          it's cheaper (~$150-300 total), no prescription needed, and it's
+          gentler on the rest of your gut.
+        </p>
+        <p>
+          Common protocols: Biotics Research FC Cidal + Dysbiocide, or
+          Metagenics Candibactin AR + BR. Work with someone who knows the
+          dosing — don't wing it.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Why root cause matters (recurrence is the real problem)</h2>
+      <div class="callout">
+        <h3>Killing the bacteria is only half the fight.</h3>
+        <p>
+          Whatever let the bacteria grow in the first place — <strong>usually
+          a slow-moving gut</strong> — is still there after treatment. Without
+          addressing it, SIBO comes back in 40-70% of people within a year.
+        </p>
+        <p><strong>Common root causes to address:</strong></p>
+        <ul>
+          <li><strong>Slow motility</strong> (the migrating motor complex, MMC, isn't sweeping properly). Fixes: prokinetic (low-dose naltrexone, prucalopride, or ginger + artichoke extract at bedtime), 4-5 hour gaps between meals, no snacking.</li>
+          <li><strong>Low stomach acid</strong>. Fixes: stop PPIs if you can (with your doctor), betaine HCl with meals, apple cider vinegar before meals.</li>
+          <li><strong>Post-infectious IBS</strong>. If you got food poisoning and never felt right after — anti-vinculin antibodies. Ask for the IBS-Smart test.</li>
+          <li><strong>Adhesions / structural issues</strong>. Visceral manipulation therapy or a GI workup.</li>
+          <li><strong>Hypothyroidism</strong>. Slows the MMC. Check TSH, free T3, free T4.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>What to do NOW while you get diagnosed</h2>
+      <div class="card">
+        <p>
+          None of this treats SIBO on its own — but it takes the pressure off
+          your gut and lets you function while you sort out testing/treatment.
+        </p>
+        <ul>
+          <li><strong>Space your meals 4-5 hours apart, no snacking</strong>. This gives the MMC (your natural cleaning wave) time to sweep bacteria down.</li>
+          <li><strong>Try low-FODMAP for 2-3 weeks</strong> as a symptom-management diet. Reduces the fermentable food bacteria feed on. Not a long-term diet — just to buy relief.</li>
+          <li><strong>Ginger + artichoke extract at bedtime</strong> (Motility Activator or Iberogast) — a gentle prokinetic. ~$25/bottle.</li>
+          <li><strong>Chew everything thoroughly</strong>. Not a joke — poor chewing is a real contributor.</li>
+          <li><strong>Stop eating 3 hours before bed</strong>.</li>
+          <li><strong>Manage stress</strong>. Chronic stress suppresses the MMC directly. Breathwork or 10 min of walking after meals helps.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>When to see a doctor now (not later)</h2>
+      <div class="red-flag">
+        <h3>Red flags — don't wait</h3>
+        <ul>
+          <li><strong>Unintentional weight loss</strong></li>
+          <li><strong>Blood in stool</strong></li>
+          <li><strong>Persistent nausea or vomiting</strong></li>
+          <li><strong>Severe abdominal pain</strong> that doesn't come and go</li>
+          <li>Family history of colon cancer, celiac disease, or IBD (Crohn's / ulcerative colitis)</li>
+          <li>Any of the "chronic" symptoms above lasting more than 3 months without a diagnosis</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="disclaimer">
+      <strong>Not medical advice.</strong> This is a research summary drawn
+      from peer-reviewed literature (evidence tier C — clinical trials with
+      contested findings around some treatments, particularly recurrence
+      rates and diagnostic breath test accuracy). Always work with a
+      qualified healthcare provider — ideally a GI doc or functional medicine
+      MD experienced with SIBO — for diagnosis and treatment decisions.
+    </div>
+
+    <footer>
+      <p>Built for you by <a href="https://chiletsgetfit.com">ChiletsGetFit</a> · Questions? Message your coach.</p>
+    </footer>
+  </div>
+</body>
+</html>
