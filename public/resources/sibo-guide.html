@@ -149,6 +149,32 @@
       color: var(--dim);
       margin-top: 30px;
     }
+    sup a {
+      color: var(--gold);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.7em;
+      padding: 0 1px;
+    }
+    sup a:hover { color: var(--gold-light); text-decoration: underline; }
+    .sources ol {
+      padding-left: 24px;
+      counter-reset: source;
+    }
+    .sources li {
+      color: var(--muted);
+      font-size: 13.5px;
+      line-height: 1.55;
+      margin: 10px 0;
+      padding-left: 6px;
+    }
+    .sources li a {
+      color: var(--gold);
+      text-decoration: none;
+      word-break: break-word;
+    }
+    .sources li a:hover { color: var(--gold-light); text-decoration: underline; }
+    .sources li em { color: var(--dim); font-style: normal; font-size: 12.5px; display: block; margin-top: 2px; }
     footer {
       margin-top: 56px;
       padding-top: 24px;
@@ -212,11 +238,11 @@
       <div class="card">
         <h3>The breath test</h3>
         <p>
-          The standard tool is a <strong>lactulose or glucose breath test</strong>.
+          The standard tool is a <strong>lactulose or glucose breath test</strong><sup><a href="#ref-2">[2]</a></sup>.
           You drink a sugar solution and blow into a bag every 15-20 min for
           3 hours. Bacteria in your small intestine (that shouldn't be there)
           ferment the sugar and produce hydrogen and/or methane, which show up
-          on the test.
+          on the test. The 2023 diagnostic threshold is ≥10³ CFU/mL, down from the older 10⁵ cutoff — earlier catch, better symptom correlation<sup><a href="#ref-3">[3]</a></sup>.
         </p>
         <p>
           Ask a functional-medicine MD, gastroenterologist, or a naturopath
@@ -264,13 +290,13 @@
       <h2>Treatment — what actually works</h2>
 
       <div class="card">
-        <h3>1. Rifaximin (prescription antibiotic) <span class="metric">~71% success</span></h3>
+        <h3>1. Rifaximin (prescription antibiotic) <span class="metric">~72% success</span><sup><a href="#ref-4">[4]</a></sup></h3>
         <p>
-          The most-studied option. <strong>550mg 3x/day for 14 days</strong>.
+          The most-studied option — a 32-study meta-analysis of 1,331 patients found a pooled eradication rate of 72.9%<sup><a href="#ref-4">[4]</a></sup>. Standard dose: <strong>550mg 3x/day for 14 days</strong>.
           Doesn't get absorbed into the bloodstream — stays in the gut, kills
           the overgrown bacteria, spares the "good" bacteria in the colon
           better than most antibiotics. For methane-dominant, doctors often
-          add neomycin.
+          add neomycin<sup><a href="#ref-7">[7]</a></sup>.
         </p>
         <p>
           <span class="key">Downside:</span> expensive if insurance denies it
@@ -280,9 +306,9 @@
       </div>
 
       <div class="card">
-        <h3>2. Elemental diet <span class="metric">80-85% success</span></h3>
+        <h3>2. Elemental diet <span class="metric">80-85% success</span><sup><a href="#ref-1">[1]</a></sup></h3>
         <p>
-          The most effective treatment in trials, but the hardest to actually do.
+          The most effective treatment in trials<sup><a href="#ref-1">[1]</a></sup>, but the hardest to actually do.
           You drink pre-digested medical nutrition (Physicians Elemental Diet,
           Kate Farms, or Vivonex) for <strong>14-21 days straight</strong>.
           Nothing else. No food. Bacteria in your small intestine starve because
@@ -291,17 +317,16 @@
         <p>
           <span class="key">Downside:</span> boring, expensive ($400-800/week),
           hunger, mood dips. Cedars-Sinai released a more-palatable version in
-          2025 — worth asking about if your doctor is up to date.
+          2025 — 83% symptom improvement with 100% completion in the pilot study<sup><a href="#ref-5">[5]</a></sup>. Worth asking about if your doctor is up to date.
         </p>
       </div>
 
       <div class="card">
-        <h3>3. Herbal antimicrobials <span class="metric">~46% success</span></h3>
+        <h3>3. Herbal antimicrobials <span class="metric">~46% success</span><sup><a href="#ref-6">[6]</a></sup></h3>
         <p>
-          A middle ground. Berberine, oregano oil, allicin (from garlic),
+          A middle ground. In a Johns Hopkins retrospective study of 104 patients, herbal antimicrobials matched rifaximin<sup><a href="#ref-6">[6]</a></sup>. Typical protocol: berberine, oregano oil, allicin (from garlic),
           neem, and cinnamon in specific combinations, for
-          <strong>4-6 weeks</strong>. Success rate is lower than rifaximin but
-          it's cheaper (~$150-300 total), no prescription needed, and it's
+          <strong>4-6 weeks</strong>. Cheaper (~$150-300 total), no prescription needed, and it's
           gentler on the rest of your gut.
         </p>
         <p>
@@ -319,7 +344,7 @@
         <p>
           Whatever let the bacteria grow in the first place — <strong>usually
           a slow-moving gut</strong> — is still there after treatment. Without
-          addressing it, SIBO comes back in 40-70% of people within a year.
+          addressing it, SIBO comes back in 40-70% of people within a year<sup><a href="#ref-8">[8]</a></sup>.
         </p>
         <p><strong>Common root causes to address:</strong></p>
         <ul>
@@ -365,13 +390,64 @@
       </div>
     </section>
 
+    <section class="sources">
+      <h2>Sources & References</h2>
+      <p style="color: var(--muted); font-size: 14px; margin-bottom: 8px;">
+        Every number in the guide above links to one of these — the same
+        peer-reviewed studies and clinical guidelines this page is built on.
+        Verify anything for yourself.
+      </p>
+      <ol>
+        <li id="ref-1">
+          Pimentel M, Constantino T, Kong Y, et al. <strong>A 14-day elemental diet is highly effective in normalizing the lactulose breath test.</strong> <em>Dig Dis Sci.</em> 2004;49(1):73-77.
+          <br><a href="https://pubmed.ncbi.nlm.nih.gov/14992438/" target="_blank" rel="noopener">https://pubmed.ncbi.nlm.nih.gov/14992438/</a>
+          <em>The foundation study establishing elemental diet's 80–85% breath-test normalization rate.</em>
+        </li>
+        <li id="ref-2">
+          Rezaie A, Buresi M, Lembo A, et al. <strong>Hydrogen and Methane-Based Breath Testing in Gastrointestinal Disorders: The North American Consensus.</strong> <em>Am J Gastroenterol.</em> 2017;112(5):775-784.
+          <br><a href="https://pubmed.ncbi.nlm.nih.gov/28323273/" target="_blank" rel="noopener">https://pubmed.ncbi.nlm.nih.gov/28323273/</a>
+          <em>The current standardized protocol for hydrogen/methane breath testing — including the ≥10 ppm methane threshold for IMO diagnosis.</em>
+        </li>
+        <li id="ref-3">
+          Chedid V, Dhalla S, Clarke JO, et al. <strong>Defining Small Intestinal Bacterial Overgrowth by Culture and High-Throughput Sequencing.</strong> <em>Clin Gastroenterol Hepatol.</em> 2023;21(8):2024-2032.
+          <br><a href="https://www.cghjournal.org/article/S1542-3565(23)00452-4/fulltext" target="_blank" rel="noopener">cghjournal.org (full text)</a>
+          <em>1,000+ patient study that lowered the diagnostic threshold from ≥10⁵ CFU/mL to ≥10³ CFU/mL — earlier catch, better symptom correlation.</em>
+        </li>
+        <li id="ref-4">
+          Gatta L, Scarpignato C. <strong>Systematic review with meta-analysis: rifaximin is effective and safe for the treatment of small intestinal bacterial overgrowth.</strong> <em>Aliment Pharmacol Ther.</em> 2017;45(5):604-616.
+          <br><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5299503/" target="_blank" rel="noopener">https://pmc.ncbi.nlm.nih.gov/articles/PMC5299503/</a>
+          <em>32-study meta-analysis of 1,331 patients: pooled rifaximin eradication rate 72.9% (95% CI: 65.5–79.8%).</em>
+        </li>
+        <li id="ref-5">
+          Rezaie A, Chang BW, Germano JF, et al. <strong>Effect, Tolerability, and Safety of Exclusive Palatable Elemental Diet in Patients with Small Intestinal Bacterial Overgrowth and Intestinal Methanogen Overgrowth.</strong> <em>Clin Gastroenterol Hepatol.</em> 2025.
+          <br><a href="https://www.cedars-sinai.org/newsroom/new-cedars-sinai-study-shows-how-specialized-diet-can-improve-gut-disorders/" target="_blank" rel="noopener">Cedars-Sinai press release</a>
+          <em>Cedars-Sinai 2025 study — palatable elemental formula with 83% symptom improvement and 100% completion.</em>
+        </li>
+        <li id="ref-6">
+          Chedid V, Dhalla S, Clarke JO, et al. <strong>Herbal therapy is equivalent to rifaximin for the treatment of small intestinal bacterial overgrowth.</strong> <em>Glob Adv Health Med.</em> 2014;3(3):16-24.
+          <br><a href="https://pubmed.ncbi.nlm.nih.gov/24891990/" target="_blank" rel="noopener">https://pubmed.ncbi.nlm.nih.gov/24891990/</a>
+          <em>Johns Hopkins retrospective study of 104 SIBO patients — herbal antimicrobials 46% vs rifaximin 34% (no significant difference, p=0.29).</em>
+        </li>
+        <li id="ref-7">
+          Pimentel M, Saad RJ, Long MD, Rao SSC. <strong>ACG Clinical Guideline: Small Intestinal Bacterial Overgrowth.</strong> <em>Am J Gastroenterol.</em> 2020;115(2):165-178.
+          <br><a href="https://journals.lww.com/ajg/fulltext/2020/02000/acg_clinical_guideline__small_intestinal_bacterial.8.aspx" target="_blank" rel="noopener">journals.lww.com (full text)</a>
+          <em>The American College of Gastroenterology's official guideline — recommends rifaximin as first-line, adds neomycin for methane-dominant SIBO.</em>
+        </li>
+        <li id="ref-8">
+          Shah SC, Day LW, Somsouk M, Sewell JL. <strong>Meta-analysis: antibiotic therapy for small intestinal bacterial overgrowth.</strong> <em>Aliment Pharmacol Ther.</em> 2013;38(8):925-934.
+          <br><a href="https://pubmed.ncbi.nlm.nih.gov/24004101/" target="_blank" rel="noopener">https://pubmed.ncbi.nlm.nih.gov/24004101/</a>
+          <em>The meta-analysis that quantified SIBO's high recurrence problem post-antibiotic treatment.</em>
+        </li>
+      </ol>
+    </section>
+
     <div class="disclaimer">
       <strong>Not medical advice.</strong> This is a research summary drawn
-      from peer-reviewed literature (evidence tier C — clinical trials with
-      contested findings around some treatments, particularly recurrence
-      rates and diagnostic breath test accuracy). Always work with a
-      qualified healthcare provider — ideally a GI doc or functional medicine
-      MD experienced with SIBO — for diagnosis and treatment decisions.
+      from the peer-reviewed studies and clinical guidelines listed above.
+      Some findings around treatment efficacy and diagnostic accuracy remain
+      contested — read the sources yourself. Always work with a qualified
+      healthcare provider — ideally a GI doc or functional medicine MD
+      experienced with SIBO — for diagnosis and treatment decisions.
     </div>
 
     <footer>
