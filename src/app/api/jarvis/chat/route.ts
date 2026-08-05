@@ -1,17 +1,32 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
+import type {
+  ChatCompletionMessageParam,
+  ChatCompletionTool,
+} from "openai/resources/chat/completions";
 
-// JARVIS conversational layer.
+// JARVIS conversational layer — free-tier LLM (Groq preferred, Gemini fallback).
 //
 // The dashboard's state is end-to-end encrypted, so this route is deliberately
-// stateless: the browser sends its current state with each turn, Claude replies
-// with tool calls, and the *browser* applies them and re-encrypts. Nothing here
-// is persisted, and the Anthropic key never reaches the client.
-
-const MODEL = "claude-opus-5";
+// stateless: the browser sends its current state with each turn, the model
+// replies with tool calls, and the *browser* applies them and re-encrypts.
+// Nothing here is persisted, and the provider key never reaches the client.
+//
+// The browser still speaks an Anthropic-shaped content-block protocol; this
+// route translates to/from OpenAI tool-calling for Groq / Gemini.
 
 const DAYS = "0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat";
 
-const TOOLS: Anthropic.Tool[] = [
+type ToolDef = {
+  name: string;
+  description: string;
+  input_schema: {
+    type: "object";
+    properties: Record<string, unknown>;
+    required?: string[];
+  };
+};
+
+const TOOL_DEFS: ToolDef[] = [
   {
     name: "add_event",
     description:
@@ -188,6 +203,25 @@ const TOOLS: Anthropic.Tool[] = [
   },
 ];
 
+const OPENAI_TOOLS: ChatCompletionTool[] = TOOL_DEFS.map((t) => ({
+  type: "function",
+  function: {
+    name: t.name,
+    description: t.description,
+    parameters: t.input_schema,
+  },
+}));
+
+type ClientBlock =
+  | { type: "text"; text: string }
+  | { type: "tool_use"; id: string; name: string; input: unknown }
+  | { type: "tool_result"; tool_use_id: string; content: string; is_error?: boolean };
+
+type ClientMessage = {
+  role: "user" | "assistant";
+  content: string | ClientBlock[];
+};
+
 function systemPrompt(state: unknown, now: string, tz: string, outlookConnected: boolean) {
   return `You are JARVIS, the assistant built into Andrew's personal dashboard. You manage his recurring schedule, medications, training plan, and countdowns, and you can read and write his Outlook work calendar.
 
@@ -212,10 +246,6 @@ Before any destructive action (remove_event, remove_med, remove_countdown) or wr
 If a request is ambiguous in a way that changes what you'd do, ask instead of guessing. If he's only asking a question, answer it without calling any tools.`;
 }
 
-// The dashboard is public, so this endpoint is too. Without a gate anyone who
-// found the URL could spend the account's Anthropic credits, so the caller must
-// present a shared passphrase. Compared in constant time to avoid leaking it
-// one character at a time.
 function keyMatches(supplied: string | null, expected: string) {
   if (!supplied) return false;
   const a = new TextEncoder().encode(supplied);
@@ -226,10 +256,95 @@ function keyMatches(supplied: string | null, expected: string) {
   return diff === 0;
 }
 
+function resolveProvider(): { client: OpenAI; model: string; name: string } | null {
+  const groq = process.env.GROQ_API_KEY?.trim();
+  if (groq) {
+    return {
+      name: "groq",
+      model: process.env.JARVIS_MODEL?.trim() || "llama-3.3-70b-versatile",
+      client: new OpenAI({ apiKey: groq, baseURL: "https://api.groq.com/openai/v1" }),
+    };
+  }
+  const gemini = process.env.GEMINI_API_KEY?.trim();
+  if (gemini) {
+    return {
+      name: "gemini",
+      model: process.env.JARVIS_MODEL?.trim() || "gemini-2.5-flash",
+      client: new OpenAI({
+        apiKey: gemini,
+        baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+      }),
+    };
+  }
+  return null;
+}
+
+function toOpenAIMessages(messages: ClientMessage[]): ChatCompletionMessageParam[] {
+  const out: ChatCompletionMessageParam[] = [];
+  for (const msg of messages) {
+    if (typeof msg.content === "string") {
+      out.push({ role: msg.role, content: msg.content });
+      continue;
+    }
+    if (!Array.isArray(msg.content)) continue;
+
+    if (msg.role === "assistant") {
+      const text = msg.content
+        .filter((b): b is Extract<ClientBlock, { type: "text" }> => b.type === "text")
+        .map((b) => b.text)
+        .join("\n")
+        .trim();
+      const toolUses = msg.content.filter(
+        (b): b is Extract<ClientBlock, { type: "tool_use" }> => b.type === "tool_use",
+      );
+      if (toolUses.length) {
+        out.push({
+          role: "assistant",
+          content: text || null,
+          tool_calls: toolUses.map((t) => ({
+            id: t.id,
+            type: "function" as const,
+            function: {
+              name: t.name,
+              arguments: JSON.stringify(t.input ?? {}),
+            },
+          })),
+        });
+      } else {
+        out.push({ role: "assistant", content: text || "" });
+      }
+      continue;
+    }
+
+    // User turn that is really tool results (Anthropic-shaped).
+    const results = msg.content.filter(
+      (b): b is Extract<ClientBlock, { type: "tool_result" }> => b.type === "tool_result",
+    );
+    if (results.length) {
+      for (const r of results) {
+        out.push({
+          role: "tool",
+          tool_call_id: r.tool_use_id,
+          content: r.is_error ? `Error: ${r.content}` : r.content,
+        });
+      }
+      continue;
+    }
+
+    const text = msg.content
+      .filter((b): b is Extract<ClientBlock, { type: "text" }> => b.type === "text")
+      .map((b) => b.text)
+      .join("\n")
+      .trim();
+    if (text) out.push({ role: "user", content: text });
+  }
+  return out;
+}
+
 export async function POST(request: Request) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
   const chatKey = process.env.JARVIS_CHAT_KEY;
-  if (!apiKey || !chatKey) {
+  const provider = resolveProvider();
+  if (!provider || !chatKey) {
     return Response.json(
       { error: "Assistant is not configured on the server." },
       { status: 500 },
@@ -240,7 +355,7 @@ export async function POST(request: Request) {
   }
 
   let body: {
-    messages?: Anthropic.MessageParam[];
+    messages?: ClientMessage[];
     state?: unknown;
     now?: string;
     tz?: string;
@@ -257,37 +372,68 @@ export async function POST(request: Request) {
     return Response.json({ error: "messages is required." }, { status: 400 });
   }
 
-  const client = new Anthropic({ apiKey });
-
   try {
-    const response = await client.messages.create({
-      model: MODEL,
-      max_tokens: 16000,
-      output_config: { effort: "low" },
-      system: systemPrompt(
-        state ?? {},
-        now ?? new Date().toISOString(),
-        tz ?? "unknown timezone",
-        Boolean(outlookConnected),
-      ),
-      tools: TOOLS,
-      messages,
+    const response = await provider.client.chat.completions.create({
+      model: provider.model,
+      temperature: 0.3,
+      max_tokens: 2048,
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt(
+            state ?? {},
+            now ?? new Date().toISOString(),
+            tz ?? "unknown timezone",
+            Boolean(outlookConnected),
+          ),
+        },
+        ...toOpenAIMessages(messages),
+      ],
+      tools: OPENAI_TOOLS,
+      tool_choice: "auto",
     });
 
-    if (response.stop_reason === "refusal") {
-      return Response.json({ error: "That request was declined." }, { status: 400 });
+    const choice = response.choices[0]?.message;
+    if (!choice) {
+      return Response.json({ error: "Empty model response." }, { status: 502 });
+    }
+
+    const content: ClientBlock[] = [];
+    if (choice.content) {
+      content.push({ type: "text", text: choice.content });
+    }
+    for (const call of choice.tool_calls ?? []) {
+      if (call.type !== "function") continue;
+      let input: unknown = {};
+      try {
+        input = JSON.parse(call.function.arguments || "{}");
+      } catch {
+        input = {};
+      }
+      content.push({
+        type: "tool_use",
+        id: call.id,
+        name: call.function.name,
+        input,
+      });
     }
 
     return Response.json({
-      content: response.content,
-      stop_reason: response.stop_reason,
+      content,
+      stop_reason: (choice.tool_calls?.length ?? 0) > 0 ? "tool_use" : "end_turn",
+      provider: provider.name,
+      model: provider.model,
     });
   } catch (error) {
-    if (error instanceof Anthropic.RateLimitError) {
+    const status =
+      typeof error === "object" && error && "status" in error
+        ? Number((error as { status?: number }).status)
+        : undefined;
+    if (status === 429) {
       return Response.json({ error: "Rate limited — try again shortly." }, { status: 429 });
     }
-    if (error instanceof Anthropic.APIError) {
-      return Response.json({ error: `Upstream error ${error.status}.` }, { status: 502 });
+    if (status && status >= 400) {
+      return Response.json({ error: `Upstream error ${status}.` }, { status: 502 });
     }
     return Response.json({ error: "Assistant unavailable." }, { status: 500 });
   }

@@ -45,18 +45,23 @@ Production (and Preview if you use it), then redeploy.
 
 | Name | Value |
 |---|---|
-| `ANTHROPIC_API_KEY` | Your key from console.anthropic.com |
+| `GROQ_API_KEY` | Free key from [console.groq.com/keys](https://console.groq.com/keys) |
 | `JARVIS_CHAT_KEY` | A passphrase you invent — see below |
 
+Optional fallback if Groq is down or rate-limited: set `GEMINI_API_KEY` from
+[Google AI Studio](https://aistudio.google.com/apikey) instead (or as well — Groq is
+tried first). Optional override: `JARVIS_MODEL` (defaults to `llama-3.3-70b-versatile`
+on Groq, or `gemini-2.5-flash` on Gemini).
+
 `JARVIS_CHAT_KEY` matters. `/jarvis` is a public page, so `/api/jarvis/chat` is a
-publicly reachable URL. Without a gate, anyone who found it could spend your Anthropic
-credits. The dashboard sends this passphrase with every request; the server rejects
+publicly reachable URL. Without a gate, anyone who found it could burn your free-tier
+quota. The dashboard sends this passphrase with every request; the server rejects
 anything else. Make it long and random — you only type it once per device.
 
 The first time you use the chat on a device it will say it's locked and prompt for the
 key. Paste it in; it's stored on that device only.
 
-For local development the same two vars are already stubbed in `.env.local`.
+For local development the same vars are stubbed in `.env.local`.
 
 ---
 
@@ -120,9 +125,12 @@ an always-on wake word isn't possible in a web page.
 
 ## Cost
 
-Each exchange sends your (small) state plus the conversation. The route runs Claude
-Opus 5 at low effort, which keeps replies quick and cheap for short commands. Watch the
-first week on console.anthropic.com and set a spend limit there if you want a hard cap.
+Each exchange sends your (small) state plus the conversation. The default path is
+**Groq's free tier** (Llama 3.3 70B) — fast enough for voice, no credit card required.
+Limits are per-day on Groq's side; if you hit them, wait or switch to a `GEMINI_API_KEY`.
+
+Nothing free consistently beats Claude Opus on hard reasoning, but for short JARVIS
+commands (move an event, log a dose, "what's tomorrow?") Groq is the right trade.
 
 ---
 
@@ -130,7 +138,7 @@ first week on console.anthropic.com and set a spend limit there if you want a ha
 
 | Symptom | Cause |
 |---|---|
-| "Assistant is not configured on the server" | One of the two env vars is missing in Vercel; redeploy after adding. |
+| "Assistant is not configured on the server" | `GROQ_API_KEY` (or `GEMINI_API_KEY`) or `JARVIS_CHAT_KEY` missing in Vercel; redeploy after adding. |
 | Prompts for the access key repeatedly | The key doesn't match `JARVIS_CHAT_KEY`. Watch for a trailing space. |
 | Outlook sign-in fails with a CORS error | The redirect URI is registered as **Web** instead of **Single-page application**. |
 | Sign-in returns "need admin approval" | The tenant requires admin consent for Calendars.ReadWrite. |
