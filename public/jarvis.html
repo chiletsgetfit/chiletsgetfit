@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#04070d">
+<title>JARVIS</title>
+<style>
+:root{
+  --bg:#04070d;
+  --surface:rgba(9,17,32,.82);
+  --surface2:rgba(13,24,44,.9);
+  --line:#16304f;
+  --line2:#1e4066;
+  --cyan:#4fd1ff;
+  --cyan-soft:rgba(79,209,255,.14);
+  --cyan-glow:rgba(79,209,255,.45);
+  --ink:#dbe9f7;
+  --ink2:#8fa8c4;
+  --ink3:#54708f;
+  --good:#3ddc97;
+  --warn:#ffb648;
+  --bad:#ff5d6c;
+  --r:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:"SF Mono",ui-monospace,"Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;
+  font-size:14px;
+  overflow-x:hidden;
+  -webkit-user-select:none;user-select:none;
+  touch-action:manipulation;
+  min-height:100vh;
+  min-height:100dvh;
+}
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(1200px 700px at 50% -10%, rgba(38,99,168,.18), transparent 60%),
+    radial-gradient(900px 600px at 85% 110%, rgba(38,99,168,.10), transparent 55%),
+    repeating-linear-gradient(0deg, rgba(79,209,255,.028) 0 1px, transparent 1px 44px),
+    repeating-linear-gradient(90deg, rgba(79,209,255,.028) 0 1px, transparent 1px 44px);
+}
+body::after{
+  content:"";position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.5;
+  background:repeating-linear-gradient(0deg, rgba(0,0,0,.09) 0 2px, transparent 2px 4px);
+}
+#app{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:max(14px,env(safe-area-inset-top)) 18px 22px;display:flex;flex-direction:column;gap:14px}
+
+/* ---------- shared panel chrome ---------- */
+.panel{
+  position:relative;
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  padding:14px 16px 16px;
+  background-image:
+    linear-gradient(var(--cyan),var(--cyan)),linear-gradient(var(--cyan),var(--cyan)),
+    linear-gradient(var(--cyan),var(--cyan)),linear-gradient(var(--cyan),var(--cyan)),
+    linear-gradient(var(--cyan),var(--cyan)),linear-gradient(var(--cyan),var(--cyan)),
+    linear-gradient(var(--cyan),var(--cyan)),linear-gradient(var(--cyan),var(--cyan)),
+    linear-gradient(var(--surface),var(--surface));
+  background-repeat:no-repeat;
+  background-size:16px 2px,2px 16px, 16px 2px,2px 16px, 16px 2px,2px 16px, 16px 2px,2px 16px, 100% 100%;
+  background-position:top left,top left, top right,top right, bottom left,bottom left, bottom right,bottom right, 0 0;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  box-shadow:0 0 0 1px rgba(79,209,255,.04), 0 8px 30px rgba(0,0,0,.35);
+}
+.panel-head{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:9px}
+.panel-head .tag{color:var(--cyan);font-size:10px;letter-spacing:.18em;opacity:.85}
+.panel-head h2{font-size:12px;font-weight:600;letter-spacing:.34em;color:var(--ink);text-shadow:0 0 14px var(--cyan-glow)}
+.panel-head .head-info{margin-left:auto;font-size:11px;color:var(--ink2);letter-spacing:.06em;text-align:right}
+.mono-label{font-size:10px;letter-spacing:.22em;color:var(--ink3)}
+.glow{color:var(--cyan);text-shadow:0 0 16px var(--cyan-glow)}
+
+/* ---------- header ---------- */
+header.panel{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:16px 20px}
+.h-left #greeting{font-size:clamp(15px,2.2vw,21px);letter-spacing:.22em;font-weight:600;text-shadow:0 0 18px var(--cyan-glow)}
+.h-left #sysline{margin-top:6px;font-size:10.5px;letter-spacing:.2em;color:var(--cyan);opacity:.9}
+.h-left #sysline::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--good);margin-right:8px;box-shadow:0 0 8px var(--good);animation:pulse 2.4s infinite}
+#sync-ind{margin-top:4px;font-size:9px;letter-spacing:.2em;color:var(--ink3)}
+#sync-ind.err{color:var(--warn)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.h-right{text-align:right}
+#clock{font-size:clamp(30px,4.6vw,46px);font-weight:700;letter-spacing:.06em;line-height:1;text-shadow:0 0 22px var(--cyan-glow)}
+#clock .ampm{font-size:.38em;color:var(--cyan);letter-spacing:.2em;margin-left:6px}
+#dateline{margin-top:6px;font-size:11px;letter-spacing:.24em;color:var(--ink2)}
+
+/* reactor */
+.reactor{position:relative;width:92px;height:92px;cursor:pointer;justify-self:center;flex:none}
+.reactor .ring{position:absolute;inset:0;border-radius:50%}
+.reactor .r1{border:1px solid var(--line2)}
+.reactor .r2{inset:8px;border:1px dashed rgba(79,209,255,.5);animation:spin 14s linear infinite}
+.reactor .r3{inset:16px;background:conic-gradient(from 0deg, var(--cyan) 0 40deg, transparent 40deg 120deg, var(--cyan) 120deg 160deg, transparent 160deg 300deg, var(--cyan) 300deg 360deg);
+  -webkit-mask:radial-gradient(circle, transparent 56%, #000 57% 100%);mask:radial-gradient(circle, transparent 56%, #000 57% 100%);
+  animation:spin 6s linear infinite reverse;opacity:.9}
+.reactor .core{position:absolute;inset:30px;border-radius:50%;background:radial-gradient(circle at 50% 42%, #bdefff 0%, var(--cyan) 42%, #0b3550 100%);box-shadow:0 0 26px var(--cyan-glow),0 0 60px rgba(79,209,255,.25);animation:breathe 3.6s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(.93)}}
+.reactor.talking .core{animation:breathe .55s ease-in-out infinite}
+
+/* header buttons */
+.h-btns{position:absolute;top:-11px;right:14px;display:flex;gap:8px}
+.hbtn{font:inherit;font-size:10px;letter-spacing:.18em;color:var(--cyan);background:var(--surface2);border:1px solid var(--line2);border-radius:6px;padding:5px 11px;cursor:pointer}
+.hbtn:active{background:var(--cyan-soft)}
+
+/* ---------- main grid ---------- */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid .panel{min-height:298px;display:flex;flex-direction:column}
+.row2{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+@media (max-width:900px){
+  .grid{grid-template-columns:1fr}
+  .row2{grid-template-columns:1fr}
+  header.panel{grid-template-columns:1fr auto}
+  .h-right{grid-column:1/-1;text-align:left;display:flex;align-items:baseline;gap:14px}
+}
+
+/* ---------- schedule ---------- */
+#schedule-list{display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1}
+.ev{display:flex;align-items:center;gap:12px;padding:9px 12px;border:1px solid transparent;border-left:2px solid var(--line2);border-radius:6px;background:rgba(255,255,255,.015)}
+.ev .t{color:var(--cyan);font-size:12px;min-width:74px;letter-spacing:.05em}
+.ev .n{font-size:13px;color:var(--ink);flex:1}
+.ev.past{opacity:.38}
+.ev.now{border-color:var(--line2);border-left-color:var(--cyan);background:var(--cyan-soft);box-shadow:inset 0 0 24px rgba(79,209,255,.06)}
+.ev.now .badge{font-size:9px;letter-spacing:.2em;color:#04121d;background:var(--cyan);border-radius:4px;padding:3px 7px;font-weight:700}
+.ev.next .badge{font-size:9px;letter-spacing:.2em;color:var(--cyan);border:1px solid var(--line2);border-radius:4px;padding:2px 6px}
+.empty{color:var(--ink3);font-size:12px;letter-spacing:.08em;padding:16px 4px;text-align:center}
+#day-progress{height:3px;background:var(--line);border-radius:3px;margin-top:12px;overflow:hidden}
+#day-progress i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan-dim,#1a5f8a),var(--cyan));box-shadow:0 0 10px var(--cyan-glow)}
+
+/* ---------- meds ---------- */
+#meds-list{display:flex;flex-direction:column;gap:9px;flex:1;overflow-y:auto}
+.med{padding:9px 12px;border:1px solid var(--line);border-radius:6px;background:rgba(255,255,255,.015)}
+.med .m-top{display:flex;align-items:baseline;gap:8px}
+.med .m-name{font-size:13px}
+.med .m-dose{font-size:10.5px;color:var(--ink3)}
+.med .m-refill{margin-left:auto;font-size:10px;letter-spacing:.06em;color:var(--ink3)}
+.med .m-refill.low{color:var(--warn)}
+.med .doses{display:flex;gap:7px;margin-top:8px;flex-wrap:wrap}
+.dose{font:inherit;font-size:11px;letter-spacing:.06em;padding:6px 12px;border-radius:16px;border:1px solid var(--line2);background:transparent;color:var(--ink2);cursor:pointer}
+.dose.taken{background:rgba(61,220,151,.12);border-color:rgba(61,220,151,.55);color:var(--good)}
+.dose.taken::before{content:"✓ ";font-weight:700}
+.dose.due{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 10px rgba(79,209,255,.18)}
+.meds-foot{margin-top:12px;border-top:1px solid var(--line);padding-top:10px;display:flex;align-items:center;gap:10px}
+#adherence-dots{display:flex;gap:6px}
+#adherence-dots i{width:9px;height:9px;border-radius:50%;background:var(--line2)}
+#adherence-dots i.full{background:var(--good);box-shadow:0 0 7px rgba(61,220,151,.6)}
+#adherence-dots i.part{background:var(--warn)}
+#adherence-dots i.miss{background:var(--bad)}
+#adherence-dots i.today{outline:1px solid var(--cyan);outline-offset:2px}
+#med-streak{margin-left:auto;font-size:11px;color:var(--ink2);letter-spacing:.08em}
+#med-streak b{color:var(--good);font-size:14px}
+
+/* ---------- workout ---------- */
+.wo-today{border:1px solid var(--line2);border-radius:8px;padding:12px 14px;background:var(--cyan-soft)}
+.wo-today .w-name{font-size:15px;letter-spacing:.08em;font-weight:600}
+.wo-today .w-sub{font-size:10.5px;color:var(--ink2);letter-spacing:.14em;margin-top:3px}
+#btn-workout-done{margin-top:10px;width:100%;font:inherit;font-size:11px;letter-spacing:.22em;padding:9px 0;border-radius:6px;border:1px solid var(--cyan);background:transparent;color:var(--cyan);cursor:pointer}
+#btn-workout-done.done{border-color:rgba(61,220,151,.55);color:var(--good);background:rgba(61,220,151,.10)}
+#week-strip{display:flex;gap:6px;margin-top:12px}
+#week-strip .wd{flex:1;text-align:center;font-size:9.5px;letter-spacing:.1em;color:var(--ink3);padding:7px 0;border:1px solid var(--line);border-radius:6px}
+#week-strip .wd.done{color:var(--good);border-color:rgba(61,220,151,.45)}
+#week-strip .wd.today{color:var(--cyan);border-color:var(--cyan)}
+#week-strip .wd b{display:block;font-size:11px;margin-top:2px;color:inherit}
+.chart-wrap{margin-top:12px;flex:1;display:flex;flex-direction:column;justify-content:flex-end}
+.chart-label{font-size:9.5px;letter-spacing:.2em;color:var(--ink3);margin-bottom:6px}
+#volume-chart{display:flex;align-items:flex-end;gap:8px;height:74px}
+#volume-chart .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
+#volume-chart .bar{width:100%;max-width:26px;background:var(--cyan);border-radius:4px 4px 0 0;opacity:.55;min-height:2px;box-shadow:0 0 8px rgba(79,209,255,.2)}
+#volume-chart .col.today .bar{opacity:1}
+#volume-chart .v{font-size:9px;color:var(--ink2)}
+#volume-chart .col .v:last-child{color:var(--ink3)}
+#workout-streak{font-size:11px;color:var(--ink2);letter-spacing:.08em;margin-top:10px}
+#workout-streak b{color:var(--cyan);font-size:14px}
+
+/* ---------- ambient row ---------- */
+.amb{display:flex;flex-direction:column;gap:12px}
+.weather-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+#w-icon{font-size:34px;line-height:1;filter:drop-shadow(0 0 10px var(--cyan-glow))}
+#w-temp{font-size:34px;font-weight:700;line-height:1}
+#w-temp small{font-size:.45em;color:var(--cyan)}
+.w-meta{font-size:11px;color:var(--ink2);letter-spacing:.06em;line-height:1.7}
+.w-meta #w-loc{color:var(--ink3);letter-spacing:.14em;font-size:10px}
+#countdown-list{display:flex;gap:10px;flex-wrap:wrap}
+.cd{border:1px solid var(--line);border-radius:8px;padding:9px 14px;text-align:center;min-width:96px}
+.cd .cd-n{font-size:20px;font-weight:700;color:var(--cyan);text-shadow:0 0 12px var(--cyan-glow)}
+.cd .cd-n small{font-size:10px;color:var(--ink3);font-weight:400;letter-spacing:.1em;margin-left:3px}
+.cd .cd-t{font-size:9.5px;letter-spacing:.16em;color:var(--ink2);margin-top:4px;text-transform:uppercase}
+.quote{border-left:2px solid var(--cyan);padding:4px 0 4px 14px}
+#quote-text{font-size:13px;color:var(--ink);font-style:italic;line-height:1.55}
+#quote-author{font-size:10px;letter-spacing:.2em;color:var(--ink3);margin-top:6px}
+
+/* ---------- settings modal ---------- */
+#modal-backdrop{position:fixed;inset:0;background:rgba(2,5,10,.78);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:80;display:none;align-items:center;justify-content:center;padding:20px}
+#modal-backdrop.open{display:flex}
+#modal{width:min(720px,100%);max-height:88vh;display:flex;flex-direction:column;background:#0a1322;border:1px solid var(--line2);border-radius:12px;box-shadow:0 0 60px rgba(79,209,255,.12)}
+#modal .mod-head{display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+#modal .mod-head h3{font-size:12px;letter-spacing:.3em;font-weight:600}
+#modal .mod-head button{margin-left:auto;font:inherit;color:var(--ink2);background:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer}
+.tabs{display:flex;gap:4px;padding:10px 14px 0;flex-wrap:wrap}
+.tab{font:inherit;font-size:10px;letter-spacing:.14em;padding:7px 12px;border:1px solid var(--line);border-bottom:none;border-radius:7px 7px 0 0;background:transparent;color:var(--ink2);cursor:pointer}
+.tab.on{color:var(--cyan);border-color:var(--line2);background:rgba(79,209,255,.06)}
+.pane{display:none;padding:16px 18px;overflow-y:auto}
+.pane.on{display:block}
+.pane .hint{font-size:10.5px;color:var(--ink3);line-height:1.6;margin-bottom:12px;letter-spacing:.04em}
+.frow{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
+.frow label{font-size:10px;letter-spacing:.14em;color:var(--ink2);min-width:86px}
+input[type=text],input[type=time],input[type=date],input[type=number],select{
+  font:inherit;font-size:12px;color:var(--ink);background:#0d1a2e;border:1px solid var(--line2);border-radius:6px;padding:8px 10px;outline:none;min-width:0;
+  -webkit-user-select:text;user-select:text;
+}
+input:focus{border-color:var(--cyan)}
+.btn{font:inherit;font-size:10.5px;letter-spacing:.16em;padding:8px 14px;border-radius:6px;border:1px solid var(--cyan);background:transparent;color:var(--cyan);cursor:pointer}
+.btn.warn{border-color:var(--bad);color:var(--bad)}
+.btn.ghost{border-color:var(--line2);color:var(--ink2)}
+.list-edit{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.list-edit .li{display:flex;align-items:center;gap:10px;font-size:12px;padding:8px 10px;border:1px solid var(--line);border-radius:6px}
+.list-edit .li .sub{color:var(--ink3);font-size:10.5px}
+.list-edit .li button{margin-left:auto;font:inherit;color:var(--bad);background:none;border:none;cursor:pointer;font-size:14px;padding:2px 6px}
+.daychecks{display:flex;gap:4px;flex-wrap:wrap}
+.daychecks label{display:flex;align-items:center;gap:3px;font-size:10px;color:var(--ink2);border:1px solid var(--line);border-radius:5px;padding:4px 6px;min-width:0;cursor:pointer}
+.daychecks input{accent-color:var(--cyan)}
+.plan-row{display:grid;grid-template-columns:44px 1fr 86px;gap:8px;margin-bottom:6px;align-items:center}
+.plan-row .d{font-size:10px;letter-spacing:.18em;color:var(--cyan)}
+.sep{border:none;border-top:1px solid var(--line);margin:14px 0}
+
+/* ---------- boot ---------- */
+#boot{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;transition:opacity .6s}
+#boot.off{opacity:0;pointer-events:none}
+#boot-inner{width:min(460px,86vw)}
+#boot-title{font-size:22px;letter-spacing:.5em;text-align:center;color:var(--cyan);text-shadow:0 0 24px var(--cyan-glow);margin-bottom:22px}
+#boot-log{font-size:11px;color:var(--ink2);line-height:2;letter-spacing:.06em;min-height:130px}
+#boot-log .ok{color:var(--good)}
+#boot-bar{height:2px;background:var(--line);margin-top:16px;border-radius:2px;overflow:hidden}
+#boot-bar i{display:block;height:100%;width:0;background:var(--cyan);box-shadow:0 0 12px var(--cyan-glow);transition:width .3s}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#0d1a2e;border:1px solid var(--cyan);color:var(--cyan);font-size:11px;letter-spacing:.14em;padding:10px 18px;border-radius:8px;z-index:90;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div id="boot">
+  <div id="boot-inner">
+    <div id="boot-title">J.A.R.V.I.S</div>
+    <div id="boot-log"></div>
+    <div id="boot-bar"><i></i></div>
+  </div>
+</div>
+
+<div id="app">
+
+  <header class="panel">
+    <div class="h-btns">
+      <button class="hbtn" id="btn-brief">◈ BRIEFING</button>
+      <button class="hbtn" id="btn-settings">⚙ CONFIG</button>
+    </div>
+    <div class="h-left">
+      <div id="greeting">GOOD EVENING</div>
+      <div id="sysline">ALL SYSTEMS NOMINAL</div>
+      <div id="sync-ind"></div>
+    </div>
+    <div class="reactor" id="reactor" title="Tap for spoken briefing">
+      <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="core"></div>
+    </div>
+    <div class="h-right">
+      <div id="clock">--:--</div>
+      <div id="dateline">LOADING</div>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <section class="panel">
+      <div class="panel-head"><span class="tag">01</span><h2>SCHEDULE</h2><span class="head-info" id="next-count"></span></div>
+      <div id="schedule-list"></div>
+      <div id="day-progress"><i></i></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><span class="tag">02</span><h2>MEDICATIONS</h2><span class="head-info" id="med-summary"></span></div>
+      <div id="meds-list"></div>
+      <div class="meds-foot">
+        <span class="mono-label">7-DAY</span>
+        <span id="adherence-dots"></span>
+        <span id="med-streak"></span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><span class="tag">03</span><h2>TRAINING</h2><span class="head-info" id="workout-streak-head"></span></div>
+      <div class="wo-today">
+        <div class="w-name" id="workout-today">Loading</div>
+        <div class="w-sub" id="workout-plan-desc"></div>
+        <button id="btn-workout-done">MARK COMPLETE</button>
+      </div>
+      <div id="week-strip"></div>
+      <div class="chart-wrap">
+        <div class="chart-label">VOLUME · MINUTES · LAST 7 DAYS</div>
+        <div id="volume-chart"></div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="row2">
+    <section class="panel amb">
+      <div class="panel-head"><span class="tag">04</span><h2>ENVIRONMENT</h2><span class="head-info" id="w-updated"></span></div>
+      <div class="weather-row">
+        <div id="w-icon">◌</div>
+        <div id="w-temp">--<small>°</small></div>
+        <div class="w-meta">
+          <div id="w-cond">Awaiting satellite link</div>
+          <div id="w-hilo"></div>
+          <div id="w-loc"></div>
+        </div>
+        <div style="margin-left:auto" class="quote">
+          <div id="quote-text"></div>
+          <div id="quote-author"></div>
+        </div>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><span class="tag">05</span><h2>COUNTDOWNS</h2></div>
+      <div id="countdown-list"></div>
+    </section>
+  </div>
+
+</div>
+
+<div id="modal-backdrop">
+  <div id="modal">
+    <div class="mod-head"><h3>SYSTEM CONFIGURATION</h3><button id="btn-close-modal">CLOSE ✕</button></div>
+    <div class="tabs">
+      <button class="tab on" data-pane="profile">PROFILE</button>
+      <button class="tab" data-pane="schedule">SCHEDULE</button>
+      <button class="tab" data-pane="meds">MEDS</button>
+      <button class="tab" data-pane="workouts">TRAINING</button>
+      <button class="tab" data-pane="counts">COUNTDOWNS</button>
+      <button class="tab" data-pane="sync">SYNC</button>
+      <button class="tab" data-pane="data">DATA</button>
+    </div>
+
+    <div class="pane on" id="pane-profile">
+      <div class="hint">Who am I working for, and where are we stationed? Location drives the weather feed (no account or API key needed).</div>
+      <div class="frow"><label>YOUR NAME</label><input type="text" id="f-name" style="flex:1"></div>
+      <div class="frow"><label>UNITS</label>
+        <select id="f-unit"><option value="F">Fahrenheit</option><option value="C">Celsius</option></select>
+      </div>
+      <div class="frow"><label>LOCATION</label><input type="text" id="f-locname" placeholder="Label, e.g. Los Angeles" style="flex:1"></div>
+      <div class="frow"><label>LAT / LON</label>
+        <input type="number" step="0.0001" id="f-lat" style="width:120px">
+        <input type="number" step="0.0001" id="f-lon" style="width:120px">
+        <button class="btn ghost" id="btn-geo">USE MY LOCATION</button>
+      </div>
+      <div class="frow" style="margin-top:10px"><button class="btn" id="btn-save-profile">SAVE PROFILE</button></div>
+    </div>
+
+    <div class="pane" id="pane-schedule">
+      <div class="hint">Recurring weekly events. Pick the days each one repeats on. One-off items: pick a single day and delete it later, or just use countdowns for big dates.</div>
+      <div class="list-edit" id="s-ev-list"></div>
+      <hr class="sep">
+      <div class="frow"><input type="text" id="f-ev-title" placeholder="Event title" style="flex:2"><input type="time" id="f-ev-time" value="09:00"></div>
+      <div class="frow"><div class="daychecks" id="f-ev-days"></div></div>
+      <div class="frow"><button class="btn" id="btn-ev-add">+ ADD EVENT</button></div>
+    </div>
+
+    <div class="pane" id="pane-meds">
+      <div class="hint">Times are comma separated, 24h format (e.g. 08:00, 20:00). Refill date is optional and drives the low-supply warning.</div>
+      <div class="list-edit" id="m-list"></div>
+      <hr class="sep">
+      <div class="frow"><input type="text" id="f-med-name" placeholder="Medication" style="flex:2"><input type="text" id="f-med-dose" placeholder="Dose (e.g. 10mg)" style="flex:1"></div>
+      <div class="frow"><input type="text" id="f-med-times" placeholder="Times: 08:00, 20:00" style="flex:2"><input type="date" id="f-med-refill" title="Refill date (optional)"></div>
+      <div class="frow"><button class="btn" id="btn-med-add">+ ADD MEDICATION</button></div>
+    </div>
+
+    <div class="pane" id="pane-workouts">
+      <div class="hint">Your weekly training template. Minutes are the planned duration, logged when you mark a session complete. Use "Rest" for rest days.</div>
+      <div id="plan-rows"></div>
+      <div class="frow" style="margin-top:10px"><button class="btn" id="btn-save-plan">SAVE PLAN</button></div>
+    </div>
+
+    <div class="pane" id="pane-counts">
+      <div class="hint">Big dates worth counting down to: trips, races, launches, birthdays.</div>
+      <div class="list-edit" id="c-list"></div>
+      <hr class="sep">
+      <div class="frow"><input type="text" id="f-c-title" placeholder="Title" style="flex:2"><input type="date" id="f-c-date"></div>
+      <div class="frow"><button class="btn" id="btn-c-add">+ ADD COUNTDOWN</button></div>
+    </div>
+
+    <div class="pane" id="pane-sync">
+      <div class="hint">Live sync across all your devices, end to end encrypted. Your data is encrypted on this device with your sync code before it goes anywhere, so the server only ever stores ciphertext. Setup: create a free Supabase project, run the SQL from the guide, paste your Project URL and anon key here (or bake them into the file), then use the SAME sync code on every device. Treat the sync code like a password.</div>
+      <div class="frow"><label>PROJECT URL</label><input type="text" id="f-sb-url" placeholder="https://xxxx.supabase.co" style="flex:1"></div>
+      <div class="frow"><label>ANON KEY</label><input type="text" id="f-sb-key" placeholder="eyJhbGciOi..." style="flex:1"></div>
+      <div class="frow"><label>SYNC CODE</label><input type="text" id="f-sync-code" placeholder="Same code on every device" style="flex:1"><button class="btn ghost" id="btn-gen-code">GENERATE</button></div>
+      <div class="frow"><button class="btn" id="btn-sync-save">ENABLE SYNC</button><button class="btn ghost" id="btn-sync-off">DISABLE</button><span id="sync-status" class="mono-label" style="margin-left:6px"></span></div>
+    </div>
+
+    <div class="pane" id="pane-data">
+      <div class="hint">All data lives on this device only. Export a backup file before clearing Safari data or switching devices, then import it here to restore everything.</div>
+      <div class="frow"><button class="btn" id="btn-export">EXPORT BACKUP</button>
+        <label class="btn ghost" style="cursor:pointer">IMPORT BACKUP<input type="file" id="f-import" accept=".json" style="display:none"></label>
+      </div>
+      <hr class="sep">
+      <div class="frow"><button class="btn warn" id="btn-reset">RESET ALL DATA</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ============ safe storage (falls back to memory if unavailable) ============ */
+const mem = {};
+const store = {
+  get(k, fb){ try{ const v = localStorage.getItem(k); return v===null ? fb : JSON.parse(v); }catch(e){ return (k in mem) ? mem[k] : fb; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} mem[k] = v; }
+};
+
+/* ============ state ============ */
+const DAYS = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+const uid = () => 'id' + Math.random().toString(36).slice(2,9);
+
+const DEFAULTS = {
+  profile:{ name:'ANDREW', unit:'F', lat:34.0522, lon:-118.2437, locName:'LOS ANGELES' },
+  events:[
+    { id:uid(), title:'Deep work block', time:'09:00', days:[1,2,3,4,5] },
+    { id:uid(), title:'Team standup', time:'10:30', days:[1,2,3,4] },
+    { id:uid(), title:'Lunch + walk', time:'12:30', days:[1,2,3,4,5] },
+    { id:uid(), title:'Wind down, screens off', time:'21:30', days:[0,1,2,3,4,5,6] }
+  ],
+  meds:[
+    { id:uid(), name:'Vitamin D3', dose:'2000 IU', times:['08:00'], refill:'' },
+    { id:uid(), name:'Omega-3', dose:'1000mg', times:['08:00','20:00'], refill:'' }
+  ],
+  plan:{
+    0:{name:'Rest / mobility', min:20}, 1:{name:'Push day', min:50}, 2:{name:'Zone 2 run', min:40},
+    3:{name:'Pull day', min:50}, 4:{name:'Intervals', min:30}, 5:{name:'Leg day', min:55}, 6:{name:'Long hike', min:90}
+  },
+  counts:[ { id:uid(), title:'Next vacation', date:'2026-12-18' } ]
+};
+
+let S = {
+  profile: store.get('jv_profile', DEFAULTS.profile),
+  events:  store.get('jv_events', DEFAULTS.events),
+  meds:    store.get('jv_meds', DEFAULTS.meds),
+  medLog:  store.get('jv_medlog', {}),
+  plan:    store.get('jv_plan', DEFAULTS.plan),
+  woLog:   store.get('jv_wolog', {}),
+  counts:  store.get('jv_counts', DEFAULTS.counts)
+};
+const persistLocal = () => {
+  store.set('jv_profile',S.profile); store.set('jv_events',S.events); store.set('jv_meds',S.meds);
+  store.set('jv_medlog',S.medLog); store.set('jv_plan',S.plan); store.set('jv_wolog',S.woLog); store.set('jv_counts',S.counts);
+};
+const save = () => { persistLocal(); schedulePush(); };
+
+/* ============ helpers ============ */
+const $ = id => document.getElementById(id);
+const dkey = (d=new Date()) => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const minsNow = (d=new Date()) => d.getHours()*60 + d.getMinutes();
+const toMins = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+const fmt12 = t => { let [h,m] = t.split(':').map(Number); const ap = h>=12?'PM':'AM'; h = h%12||12; return h+':'+String(m).padStart(2,'0')+' '+ap; };
+const daysAgoKey = n => { const d = new Date(); d.setDate(d.getDate()-n); return dkey(d); };
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), 2200); }
+
+/* ============ clock + greeting ============ */
+let lastDay = dkey();
+function tickClock(){
+  const d = new Date();
+  let h = d.getHours(); const ap = h>=12?'PM':'AM'; const h12 = h%12||12;
+  $('clock').innerHTML = h12+':'+String(d.getMinutes()).padStart(2,'0')+'<span class="ampm">'+ap+'</span>';
+  $('dateline').textContent = DAYS[d.getDay()]+' · '+d.toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'}).toUpperCase();
+  const g = h<5?'BURNING THE MIDNIGHT OIL':h<12?'GOOD MORNING':h<17?'GOOD AFTERNOON':'GOOD EVENING';
+  $('greeting').textContent = g + ', ' + (S.profile.name||'').toUpperCase();
+  const pct = Math.min(100, (minsNow(d)/1440)*100);
+  document.querySelector('#day-progress i').style.width = pct.toFixed(1)+'%';
+  if(dkey(d)!==lastDay){ lastDay = dkey(d); renderAll(); }
+}
+
+const SYSLINES = ['ALL SYSTEMS NOMINAL','MONITORING SCHEDULE','TRACKING VITALS','SENSORS ONLINE','STANDING BY, SIR','TELEMETRY STABLE'];
+let sysIdx = 0;
+setInterval(()=>{ sysIdx = (sysIdx+1)%SYSLINES.length; $('sysline').textContent = SYSLINES[sysIdx]; }, 8000);
+
+/* ============ schedule ============ */
+function todaysEvents(){
+  const dow = new Date().getDay();
+  return S.events.filter(e => e.days.includes(dow)).sort((a,b)=>toMins(a.time)-toMins(b.time));
+}
+function renderSchedule(){
+  const list = $('schedule-list'); const evs = todaysEvents(); const now = minsNow();
+  list.innerHTML = '';
+  if(!evs.length){ list.innerHTML = '<div class="empty">NO SCHEDULED EVENTS TODAY</div>'; $('next-count').textContent=''; return; }
+  let next = null;
+  evs.forEach((e,i)=>{
+    const m = toMins(e.time);
+    const end = (i+1<evs.length) ? toMins(evs[i+1].time) : m+60;
+    const isNow = now>=m && now<end;
+    const isPast = end<=now && !isNow;
+    if(!next && m>now) next = e;
+    const div = document.createElement('div');
+    div.className = 'ev' + (isNow?' now':'') + (isPast?' past':'') + (next===e?' next':'');
+    div.innerHTML = '<span class="t">'+fmt12(e.time)+'</span><span class="n"></span>' +
+      (isNow?'<span class="badge">NOW</span>': next===e?'<span class="badge">NEXT</span>':'');
+    div.querySelector('.n').textContent = e.title;
+    list.appendChild(div);
+  });
+  if(next){
+    const diff = toMins(next.time)-now; const hh = Math.floor(diff/60), mm = diff%60;
+    $('next-count').textContent = 'NEXT IN ' + (hh? hh+'H ':'') + mm + 'M';
+  } else $('next-count').textContent = 'DAY CLEAR';
+}
+
+/* ============ meds ============ */
+function medDoseKey(medId, time){ return medId+'@'+time; }
+function dosesForDay(){ return S.meds.flatMap(m => m.times.map(t => ({m, t}))); }
+function takenCount(dayKey){
+  const log = S.medLog[dayKey]||{};
+  return dosesForDay().filter(({m,t}) => log[medDoseKey(m.id,t)]).length;
+}
+function renderMeds(){
+  const list = $('meds-list'); list.innerHTML = '';
+  const today = dkey(); const log = S.medLog[today]||{}; const now = minsNow();
+  if(!S.meds.length){ list.innerHTML = '<div class="empty">NO MEDICATIONS CONFIGURED</div>'; }
+  S.meds.forEach(m => {
+    const div = document.createElement('div'); div.className = 'med';
+    let refill = '';
+    if(m.refill){
+      const days = Math.ceil((new Date(m.refill+'T00:00') - new Date())/86400000);
+      refill = '<span class="m-refill'+(days<=5?' low':'')+'">'+(days<0?'REFILL OVERDUE':'REFILL '+days+'D')+'</span>';
+    }
+    div.innerHTML = '<div class="m-top"><span class="m-name"></span><span class="m-dose"></span>'+refill+'</div><div class="doses"></div>';
+    div.querySelector('.m-name').textContent = m.name;
+    div.querySelector('.m-dose').textContent = m.dose||'';
+    const doses = div.querySelector('.doses');
+    m.times.forEach(t => {
+      const k = medDoseKey(m.id,t); const taken = !!log[k];
+      const b = document.createElement('button');
+      b.className = 'dose' + (taken?' taken': (toMins(t)<=now?' due':''));
+      b.textContent = fmt12(t);
+      b.onclick = () => {
+        S.medLog[today] = S.medLog[today]||{};
+        S.medLog[today][k] = !S.medLog[today][k];
+        save(); renderMeds();
+        if(S.medLog[today][k]) toast('LOGGED: '+m.name.toUpperCase()+' · '+fmt12(t));
+      };
+      doses.appendChild(b);
+    });
+    list.appendChild(div);
+  });
+  const total = dosesForDay().length, taken = takenCount(today);
+  $('med-summary').textContent = total? taken+' / '+total+' TAKEN' : '';
+  const dots = $('adherence-dots'); dots.innerHTML = '';
+  for(let i=6;i>=0;i--){
+    const k = daysAgoKey(i); const tk = takenCount(k);
+    const dot = document.createElement('i');
+    if(total>0 && S.medLog[k]){
+      if(tk>=total) dot.className = 'full';
+      else if(tk>0) dot.className = 'part';
+      else if(i>0) dot.className = 'miss';
+    }
+    if(i===0) dot.classList.add('today');
+    dots.appendChild(dot);
+  }
+  let streak = 0;
+  if(total>0){
+    for(let i=0;i<3650;i++){
+      const k = daysAgoKey(i);
+      if(takenCount(k)>=total){ streak++; }
+      else if(i===0){ /* today still in progress, does not break the streak */ }
+      else break;
+    }
+  }
+  $('med-streak').innerHTML = 'STREAK <b>'+streak+'</b> DAYS';
+}
+
+/* ============ workouts ============ */
+function renderWorkout(){
+  const d = new Date(); const dow = d.getDay(); const today = dkey();
+  const p = S.plan[dow]||{name:'Rest',min:0};
+  const isRest = /rest/i.test(p.name);
+  $('workout-today').textContent = p.name;
+  $('workout-plan-desc').textContent = (isRest?'RECOVERY PROTOCOL':'PLANNED · '+p.min+' MIN') + ' · ' + DAYS[dow];
+  const done = !!(S.woLog[today] && S.woLog[today].done);
+  const btn = $('btn-workout-done');
+  btn.textContent = done ? '✓ SESSION LOGGED' : (isRest?'LOG RECOVERY DONE':'MARK COMPLETE');
+  btn.className = done?'done':'';
+  btn.onclick = () => {
+    if(S.woLog[today] && S.woLog[today].done){ delete S.woLog[today]; }
+    else { S.woLog[today] = { done:true, minutes:p.min||0, name:p.name }; toast('SESSION LOGGED. WELL DONE, SIR.'); }
+    save(); renderWorkout();
+  };
+  const strip = $('week-strip'); strip.innerHTML = '';
+  for(let i=0;i<7;i++){
+    const dd = new Date(); dd.setDate(dd.getDate()-dd.getDay()+i);
+    const k = dkey(dd); const w = document.createElement('div');
+    const isDone = !!(S.woLog[k] && S.woLog[k].done);
+    w.className = 'wd' + (isDone?' done':'') + (i===dow?' today':'');
+    w.innerHTML = DAYS[i].slice(0,2) + '<b>' + (isDone?'✓': (i<dow?'·':'')) + '</b>';
+    strip.appendChild(w);
+  }
+  const chart = $('volume-chart'); chart.innerHTML = '';
+  let vals = [];
+  for(let i=6;i>=0;i--){ const k = daysAgoKey(i); vals.push({k, i, v:(S.woLog[k]&&S.woLog[k].done)?(S.woLog[k].minutes||0):0}); }
+  const max = Math.max(30, ...vals.map(x=>x.v));
+  vals.forEach(({k,i,v}) => {
+    const col = document.createElement('div'); col.className = 'col'+(i===0?' today':'');
+    const hPct = Math.round((v/max)*100);
+    const lbl = (v>0 && (i===0 || v===Math.max(...vals.map(x=>x.v)))) ? '<span class="v">'+v+'</span>' : '<span class="v">&nbsp;</span>';
+    const dd = new Date(); dd.setDate(dd.getDate()-i);
+    col.innerHTML = lbl + '<div class="bar" style="height:'+Math.max(3,hPct)+'%"></div><span class="v">'+DAYS[dd.getDay()].slice(0,2)+'</span>';
+    chart.appendChild(col);
+  });
+  let streak = 0;
+  for(let i=0;i<3650;i++){
+    const dd2 = new Date(); dd2.setDate(dd2.getDate()-i);
+    const k = dkey(dd2);
+    const rest = /rest/i.test((S.plan[dd2.getDay()]||{name:'Rest'}).name);
+    const logged = !!(S.woLog[k] && S.woLog[k].done);
+    if(logged) streak++;
+    else if(rest) continue;            /* rest days never break the streak */
+    else if(i===0) continue;           /* today not done yet, streak intact */
+    else break;
+  }
+  $('workout-streak-head').textContent = 'STREAK ' + streak + (streak===1?' SESSION':' SESSIONS');
+}
+
+/* ============ countdowns ============ */
+function renderCounts(){
+  const list = $('countdown-list'); list.innerHTML = '';
+  if(!S.counts.length){ list.innerHTML = '<div class="empty">NO ACTIVE COUNTDOWNS</div>'; return; }
+  S.counts.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(c => {
+    const days = Math.ceil((new Date(c.date+'T00:00') - new Date())/86400000);
+    const div = document.createElement('div'); div.className = 'cd';
+    div.innerHTML = '<div class="cd-n">'+(days<0?'GONE':days)+'<small>'+(days>=0?'DAYS':'')+'</small></div><div class="cd-t"></div>';
+    div.querySelector('.cd-t').textContent = c.title;
+    list.appendChild(div);
+  });
+}
+
+/* ============ quotes ============ */
+const QUOTES = [
+  ['Sometimes you gotta run before you can walk.','TONY STARK'],
+  ['Discipline equals freedom.','JOCKO WILLINK'],
+  ['We are what we repeatedly do. Excellence, then, is not an act, but a habit.','WILL DURANT'],
+  ['The best time to plant a tree was 20 years ago. The second best time is now.','PROVERB'],
+  ['It is not the mountain we conquer, but ourselves.','EDMUND HILLARY'],
+  ['Well done is better than well said.','BEN FRANKLIN'],
+  ['You miss 100% of the shots you do not take.','WAYNE GRETZKY'],
+  ['What we do in life echoes in eternity.','MAXIMUS'],
+  ['Simplicity is the ultimate sophistication.','LEONARDO DA VINCI'],
+  ['The obstacle is the way.','MARCUS AURELIUS'],
+  ['Do or do not. There is no try.','YODA'],
+  ['Fortune favors the bold.','VIRGIL'],
+  ['A year from now you may wish you had started today.','KAREN LAMB'],
+  ['Genius is one percent inspiration, ninety-nine percent perspiration.','THOMAS EDISON']
+];
+function renderQuote(){
+  const start = new Date(new Date().getFullYear(),0,0);
+  const doy = Math.floor((new Date()-start)/86400000);
+  const [t,a] = QUOTES[doy % QUOTES.length];
+  $('quote-text').textContent = '"'+t+'"';
+  $('quote-author').textContent = '· '+a;
+}
+
+/* ============ weather (Open-Meteo, keyless) ============ */
+const WCODES = {0:['CLEAR SKIES','☀'],1:['MAINLY CLEAR','🌤'],2:['PARTLY CLOUDY','⛅'],3:['OVERCAST','☁'],45:['FOG','🌫'],48:['RIME FOG','🌫'],
+  51:['LIGHT DRIZZLE','🌦'],53:['DRIZZLE','🌦'],55:['HEAVY DRIZZLE','🌧'],61:['LIGHT RAIN','🌧'],63:['RAIN','🌧'],65:['HEAVY RAIN','🌧'],
+  66:['FREEZING RAIN','🌧'],67:['FREEZING RAIN','🌧'],71:['LIGHT SNOW','🌨'],73:['SNOW','🌨'],75:['HEAVY SNOW','❄'],77:['SNOW GRAINS','❄'],
+  80:['SHOWERS','🌦'],81:['SHOWERS','🌧'],82:['VIOLENT SHOWERS','⛈'],85:['SNOW SHOWERS','🌨'],86:['SNOW SHOWERS','❄'],
+  95:['THUNDERSTORM','⛈'],96:['THUNDERSTORM + HAIL','⛈'],99:['THUNDERSTORM + HAIL','⛈']};
+async function fetchWeather(){
+  try{
+    const u = S.profile.unit==='C' ? 'celsius' : 'fahrenheit';
+    const wu = S.profile.unit==='C' ? 'kmh' : 'mph';
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude='+S.profile.lat+'&longitude='+S.profile.lon+
+      '&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m'+
+      '&daily=temperature_2m_max,temperature_2m_min&forecast_days=1&temperature_unit='+u+'&wind_speed_unit='+wu+'&timezone=auto';
+    const r = await fetch(url); const j = await r.json();
+    const c = j.current; const [txt, icon] = WCODES[c.weather_code]||['UNKNOWN','◌'];
+    $('w-icon').textContent = icon;
+    $('w-temp').innerHTML = Math.round(c.temperature_2m)+'<small>°'+S.profile.unit+'</small>';
+    $('w-cond').textContent = txt + ' · FEELS ' + Math.round(c.apparent_temperature) + '°';
+    $('w-hilo').textContent = 'HI ' + Math.round(j.daily.temperature_2m_max[0]) + '° · LO ' + Math.round(j.daily.temperature_2m_min[0]) + '° · WIND ' + Math.round(c.wind_speed_10m) + (S.profile.unit==='C'?' KMH':' MPH') + ' · HUM ' + c.relative_humidity_2m + '%';
+    $('w-loc').textContent = (S.profile.locName||'').toUpperCase();
+    $('w-updated').textContent = 'UPDATED ' + new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}).toUpperCase();
+  }catch(e){
+    $('w-cond').textContent = 'WEATHER LINK OFFLINE';
+    $('w-updated').textContent = 'RETRYING SOON';
+  }
+}
+setInterval(fetchWeather, 30*60*1000);
+
+/* ============ spoken briefing ============ */
+function buildBriefing(){
+  const h = new Date().getHours();
+  const g = h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  let parts = [g + ', ' + (S.profile.name||'') + '.'];
+  const evs = todaysEvents(); const now = minsNow();
+  const next = evs.find(e => toMins(e.time)>now);
+  if(next) parts.push('Your next event is ' + next.title + ' at ' + fmt12(next.time) + '.');
+  else if(evs.length) parts.push('Your schedule is clear for the rest of the day.');
+  else parts.push('You have nothing on the schedule today.');
+  const total = dosesForDay().length, taken = takenCount(dkey());
+  if(total>0) parts.push(taken>=total ? 'All medications are logged. Nicely done.' : 'You have ' + (total-taken) + ' of ' + total + ' medication doses remaining today.');
+  const p = S.plan[new Date().getDay()]||{name:'Rest'};
+  const done = S.woLog[dkey()] && S.woLog[dkey()].done;
+  if(/rest/i.test(p.name)) parts.push('Today is a recovery day.');
+  else parts.push(done ? 'Training is complete for today.' : 'Training on deck: ' + p.name + ', roughly ' + (p.min||30) + ' minutes.');
+  const temp = $('w-temp').textContent.replace(/[^0-9-]/g,'');
+  if(temp) parts.push('It is currently ' + temp + ' degrees.');
+  parts.push('I will be here if you need me.');
+  return parts.join(' ');
+}
+function speakBriefing(){
+  const text = buildBriefing();
+  if(!('speechSynthesis' in window)){ toast('SPEECH NOT SUPPORTED ON THIS DEVICE'); return; }
+  speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  const voices = speechSynthesis.getVoices();
+  const pref = voices.find(v=>/Daniel|Oliver|Serena|Google UK English Male/i.test(v.name)) || voices.find(v=>v.lang.startsWith('en'));
+  if(pref) utt.voice = pref;
+  utt.rate = 1.0; utt.pitch = 0.9;
+  const reactor = $('reactor');
+  reactor.classList.add('talking');
+  utt.onend = () => reactor.classList.remove('talking');
+  speechSynthesis.speak(utt);
+}
+$('btn-brief').onclick = speakBriefing;
+$('reactor').onclick = speakBriefing;
+
+/* ============ settings modal ============ */
+const backdrop = $('modal-backdrop');
+$('btn-settings').onclick = () => { openSettings(); };
+$('btn-close-modal').onclick = () => backdrop.classList.remove('open');
+backdrop.addEventListener('click', e => { if(e.target===backdrop) backdrop.classList.remove('open'); });
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+    document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+    tab.classList.add('on');
+    $('pane-'+tab.dataset.pane).classList.add('on');
+  };
+});
+function openSettings(){
+  $('f-name').value = S.profile.name; $('f-unit').value = S.profile.unit;
+  $('f-locname').value = S.profile.locName; $('f-lat').value = S.profile.lat; $('f-lon').value = S.profile.lon;
+  renderEvEdit(); renderMedEdit(); renderPlanEdit(); renderCountEdit(); fillSyncPane();
+  backdrop.classList.add('open');
+}
+$('btn-save-profile').onclick = () => {
+  S.profile = { name:$('f-name').value.trim()||'FRIEND', unit:$('f-unit').value,
+    locName:$('f-locname').value.trim(), lat:parseFloat($('f-lat').value)||0, lon:parseFloat($('f-lon').value)||0 };
+  save(); renderAll(); fetchWeather(); toast('PROFILE UPDATED');
+};
+$('btn-geo').onclick = () => {
+  if(!navigator.geolocation){ toast('GEOLOCATION UNAVAILABLE'); return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    $('f-lat').value = pos.coords.latitude.toFixed(4);
+    $('f-lon').value = pos.coords.longitude.toFixed(4);
+    toast('COORDINATES LOCKED');
+  }, ()=>toast('LOCATION ACCESS DENIED'));
+};
+
+/* schedule editing */
+const dayBox = $('f-ev-days');
+DAYS.forEach((d,i)=>{
+  const l = document.createElement('label');
+  l.innerHTML = '<input type="checkbox" value="'+i+'"'+(i>=1&&i<=5?' checked':'')+'>'+d;
+  dayBox.appendChild(l);
+});
+function renderEvEdit(){
+  const box = $('s-ev-list'); box.innerHTML = '';
+  S.events.slice().sort((a,b)=>toMins(a.time)-toMins(b.time)).forEach(e => {
+    const li = document.createElement('div'); li.className = 'li';
+    li.innerHTML = '<span></span><span class="sub">'+fmt12(e.time)+' · '+e.days.map(d=>DAYS[d].slice(0,2)).join(' ')+'</span><button title="Delete">✕</button>';
+    li.querySelector('span').textContent = e.title;
+    li.querySelector('button').onclick = () => { S.events = S.events.filter(x=>x.id!==e.id); save(); renderEvEdit(); renderSchedule(); };
+    box.appendChild(li);
+  });
+}
+$('btn-ev-add').onclick = () => {
+  const title = $('f-ev-title').value.trim(); const time = $('f-ev-time').value;
+  const days = [...dayBox.querySelectorAll('input:checked')].map(c=>+c.value);
+  if(!title || !time || !days.length){ toast('NEED TITLE, TIME AND AT LEAST ONE DAY'); return; }
+  S.events.push({id:uid(), title, time, days}); save();
+  $('f-ev-title').value = ''; renderEvEdit(); renderSchedule(); toast('EVENT ADDED');
+};
+
+/* meds editing */
+function renderMedEdit(){
+  const box = $('m-list'); box.innerHTML = '';
+  S.meds.forEach(m => {
+    const li = document.createElement('div'); li.className = 'li';
+    li.innerHTML = '<span></span><span class="sub">'+(m.dose||'')+' · '+m.times.map(fmt12).join(', ')+(m.refill?' · refill '+m.refill:'')+'</span><button title="Delete">✕</button>';
+    li.querySelector('span').textContent = m.name;
+    li.querySelector('button').onclick = () => { S.meds = S.meds.filter(x=>x.id!==m.id); save(); renderMedEdit(); renderMeds(); };
+    box.appendChild(li);
+  });
+}
+$('btn-med-add').onclick = () => {
+  const name = $('f-med-name').value.trim(); const dose = $('f-med-dose').value.trim();
+  const times = $('f-med-times').value.split(',').map(s=>s.trim()).filter(s=>/^\d{1,2}:\d{2}$/.test(s)).map(s=>s.padStart(5,'0'));
+  if(!name || !times.length){ toast('NEED A NAME AND AT LEAST ONE VALID TIME'); return; }
+  S.meds.push({id:uid(), name, dose, times, refill:$('f-med-refill').value||''}); save();
+  $('f-med-name').value=''; $('f-med-dose').value=''; $('f-med-times').value=''; $('f-med-refill').value='';
+  renderMedEdit(); renderMeds(); toast('MEDICATION ADDED');
+};
+
+/* plan editing */
+function renderPlanEdit(){
+  const box = $('plan-rows'); box.innerHTML = '';
+  for(let i=0;i<7;i++){
+    const p = S.plan[i]||{name:'Rest',min:0};
+    const row = document.createElement('div'); row.className = 'plan-row';
+    row.innerHTML = '<span class="d">'+DAYS[i]+'</span><input type="text" id="plan-day-'+i+'"><input type="number" id="plan-min-'+i+'" min="0" placeholder="min">';
+    box.appendChild(row);
+    row.querySelector('#plan-day-'+i).value = p.name;
+    row.querySelector('#plan-min-'+i).value = p.min||0;
+  }
+}
+$('btn-save-plan').onclick = () => {
+  for(let i=0;i<7;i++){
+    S.plan[i] = { name: $('plan-day-'+i).value.trim()||'Rest', min: parseInt($('plan-min-'+i).value)||0 };
+  }
+  save(); renderWorkout(); toast('TRAINING PLAN SAVED');
+};
+
+/* countdown editing */
+function renderCountEdit(){
+  const box = $('c-list'); box.innerHTML = '';
+  S.counts.forEach(c => {
+    const li = document.createElement('div'); li.className = 'li';
+    li.innerHTML = '<span></span><span class="sub">'+c.date+'</span><button title="Delete">✕</button>';
+    li.querySelector('span').textContent = c.title;
+    li.querySelector('button').onclick = () => { S.counts = S.counts.filter(x=>x.id!==c.id); save(); renderCountEdit(); renderCounts(); };
+    box.appendChild(li);
+  });
+}
+$('btn-c-add').onclick = () => {
+  const title = $('f-c-title').value.trim(); const date = $('f-c-date').value;
+  if(!title || !date){ toast('NEED A TITLE AND A DATE'); return; }
+  S.counts.push({id:uid(), title, date}); save();
+  $('f-c-title').value=''; $('f-c-date').value='';
+  renderCountEdit(); renderCounts(); toast('COUNTDOWN ADDED');
+};
+
+/* data pane */
+$('btn-export').onclick = () => {
+  const blob = new Blob([JSON.stringify(S,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'jarvis-backup.json';
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('BACKUP EXPORTED');
+};
+$('f-import').onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const j = JSON.parse(r.result);
+      if(!j.profile || !j.events) throw new Error('bad file');
+      S = { profile:j.profile, events:j.events, meds:j.meds||[], medLog:j.medLog||{}, plan:j.plan||DEFAULTS.plan, woLog:j.woLog||{}, counts:j.counts||[] };
+      save(); renderAll(); fetchWeather(); toast('BACKUP RESTORED');
+    }catch(err){ toast('IMPORT FAILED: INVALID FILE'); }
+  };
+  r.readAsText(f);
+};
+let resetArmed = false;
+$('btn-reset').onclick = () => {
+  if(!resetArmed){ resetArmed = true; $('btn-reset').textContent = 'TAP AGAIN TO CONFIRM RESET'; setTimeout(()=>{ resetArmed=false; $('btn-reset').textContent='RESET ALL DATA'; }, 3000); return; }
+  S = JSON.parse(JSON.stringify({profile:DEFAULTS.profile, events:DEFAULTS.events, meds:DEFAULTS.meds, medLog:{}, plan:DEFAULTS.plan, woLog:{}, counts:DEFAULTS.counts}));
+  save(); renderAll(); fetchWeather(); backdrop.classList.remove('open'); toast('SYSTEM RESET COMPLETE');
+};
+
+/* ============ cloud sync (Supabase + end-to-end encryption) ============ */
+/* OPTIONAL: bake your Supabase project in here once, so each device only
+   needs the sync code. Leave blank to paste them in the SYNC tab instead. */
+const SYNC_DEFAULTS = {
+  url: 'https://vdduggdtsmuccdtklloc.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkZHVnZ2R0c211Y2NkdGtsbG9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwODE4NzYsImV4cCI6MjA5MzY1Nzg3Nn0.5lFijuHlbJHu42yMVAcFaiziWlhJIpUNKccGyjm49dY'
+};
+
+let SYNC = store.get('jv_sync', { url:'', key:'', code:'', enabled:false });
+if(!SYNC.url && SYNC_DEFAULTS.url) SYNC.url = SYNC_DEFAULTS.url;
+if(!SYNC.key && SYNC_DEFAULTS.anonKey) SYNC.key = SYNC_DEFAULTS.anonKey;
+
+let cryptoKey = null, rowId = null, lastRemoteTs = null, pushTimer = null, pulling = false;
+const _enc = new TextEncoder(), _dec = new TextDecoder();
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+async function deriveKeys(code){
+  const base = await crypto.subtle.importKey('raw', _enc.encode(code), 'PBKDF2', false, ['deriveKey']);
+  cryptoKey = await crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt:_enc.encode('jarvis-salt-v1'), iterations:150000, hash:'SHA-256' },
+    base, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+  const idBits = await crypto.subtle.digest('SHA-256', _enc.encode('jarvis-id:'+code));
+  rowId = Array.from(new Uint8Array(idBits)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function encryptState(){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, cryptoKey, _enc.encode(JSON.stringify(S)));
+  return b64(iv)+'.'+b64(ct);
+}
+async function decryptState(payload){
+  const [ivs, cts] = payload.split('.');
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(ivs)}, cryptoKey, unb64(cts));
+  return JSON.parse(_dec.decode(pt));
+}
+const syncHeaders = () => ({ 'apikey':SYNC.key, 'Authorization':'Bearer '+SYNC.key, 'Content-Type':'application/json' });
+function setSyncStatus(txt, ok){
+  const st = $('sync-status'); if(st) st.textContent = txt;
+  const ind = $('sync-ind');
+  if(ind){ ind.textContent = SYNC.enabled ? '⇅ '+txt : ''; ind.className = ok===false ? 'err' : ''; }
+}
+async function pushState(){
+  if(!SYNC.enabled || !cryptoKey) return;
+  try{
+    const data = await encryptState();
+    const now = new Date().toISOString();
+    const r = await fetch(SYNC.url+'/rest/v1/jarvis_state', {
+      method:'POST',
+      headers:{ ...syncHeaders(), 'Prefer':'resolution=merge-duplicates' },
+      body: JSON.stringify([{ id:rowId, data, updated_at:now }])
+    });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    lastRemoteTs = now;
+    setSyncStatus('SYNCED '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).toUpperCase(), true);
+  }catch(e){ setSyncStatus('SYNC OFFLINE · WILL RETRY', false); }
+}
+function schedulePush(){ if(!SYNC.enabled || !cryptoKey) return; clearTimeout(pushTimer); pushTimer = setTimeout(pushState, 1500); }
+async function pullState(){
+  if(!SYNC.enabled || !cryptoKey || pulling) return;
+  pulling = true;
+  try{
+    const r = await fetch(SYNC.url+'/rest/v1/jarvis_state?id=eq.'+rowId+'&select=data,updated_at', { headers:syncHeaders() });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const rows = await r.json();
+    if(!rows.length){ pulling = false; await pushState(); return; }
+    const row = rows[0];
+    if(!lastRemoteTs || row.updated_at > lastRemoteTs){
+      const remote = await decryptState(row.data);
+      S = { profile:remote.profile||S.profile, events:remote.events||[], meds:remote.meds||[],
+            medLog:remote.medLog||{}, plan:remote.plan||S.plan, woLog:remote.woLog||{}, counts:remote.counts||[] };
+      lastRemoteTs = row.updated_at;
+      persistLocal(); renderAll();
+    }
+    setSyncStatus('SYNCED '+new Date(row.updated_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).toUpperCase(), true);
+  }catch(e){
+    if(e && e.name==='OperationError') setSyncStatus('SYNC CODE MISMATCH', false);
+    else setSyncStatus('SYNC OFFLINE · WILL RETRY', false);
+  }
+  pulling = false;
+}
+async function initSync(){
+  if(!SYNC.enabled || !SYNC.url || !SYNC.key || !SYNC.code){ setSyncStatus('SYNC NOT CONFIGURED', true); return; }
+  try{ await deriveKeys(SYNC.code); await pullState(); }
+  catch(e){ setSyncStatus('SYNC INIT FAILED', false); }
+}
+setInterval(pullState, 60*1000);
+document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') pullState(); });
+
+/* sync settings UI */
+function fillSyncPane(){
+  $('f-sb-url').value = SYNC.url||''; $('f-sb-key').value = SYNC.key||''; $('f-sync-code').value = SYNC.code||'';
+  $('sync-status').textContent = SYNC.enabled ? 'SYNC IS ON' : 'SYNC IS OFF';
+}
+$('btn-gen-code').onclick = () => {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const buf = crypto.getRandomValues(new Uint8Array(16));
+  let code = '';
+  for(let i=0;i<16;i++){ code += chars[buf[i]%chars.length]; if(i%4===3 && i<15) code += '-'; }
+  $('f-sync-code').value = code;
+  toast('CODE GENERATED. SAVE IT SOMEWHERE SAFE.');
+};
+$('btn-sync-save').onclick = async () => {
+  const url = $('f-sb-url').value.trim().replace(/\/+$/,'');
+  const key = $('f-sb-key').value.trim();
+  const code = $('f-sync-code').value.trim();
+  if(!url || !key || !code){ toast('NEED URL, KEY AND A SYNC CODE'); return; }
+  SYNC = { url, key, code, enabled:true };
+  store.set('jv_sync', SYNC);
+  lastRemoteTs = null;
+  await initSync();
+  toast('SYNC ENABLED');
+};
+$('btn-sync-off').onclick = () => {
+  SYNC.enabled = false; store.set('jv_sync', SYNC);
+  setSyncStatus('SYNC IS OFF', true); $('sync-ind').textContent = '';
+  toast('SYNC DISABLED');
+};
+
+/* ============ keep screen awake (best effort) ============ */
+let wakeLock = null;
+async function requestWake(){
+  try{ if('wakeLock' in navigator){ wakeLock = await navigator.wakeLock.request('screen'); } }catch(e){}
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') requestWake(); });
+document.addEventListener('pointerdown', requestWake, {once:true});
+
+/* ============ boot sequence ============ */
+const BOOTLINES = [
+  'INITIALIZING CORE SYSTEMS',
+  'LOADING SCHEDULE MATRIX',
+  'SYNCING HEALTH PROTOCOLS',
+  'CALIBRATING TRAINING MODULE',
+  'ESTABLISHING WEATHER UPLINK',
+  'ALL SYSTEMS ONLINE'
+];
+function boot(){
+  const logEl = $('boot-log'); const bar = document.querySelector('#boot-bar i');
+  let i = 0;
+  const step = () => {
+    if(i < BOOTLINES.length){
+      const line = document.createElement('div');
+      line.innerHTML = '&gt; ' + BOOTLINES[i] + ' <span class="ok">[OK]</span>';
+      logEl.appendChild(line);
+      i++;
+      bar.style.width = Math.round((i/BOOTLINES.length)*100) + '%';
+      setTimeout(step, 260 + Math.random()*180);
+    } else {
+      setTimeout(()=>{ $('boot').classList.add('off'); }, 450);
+    }
+  };
+  step();
+  $('boot').addEventListener('click', ()=> $('boot').classList.add('off'));
+}
+
+/* ============ init ============ */
+function renderAll(){ tickClock(); renderSchedule(); renderMeds(); renderWorkout(); renderCounts(); renderQuote(); }
+renderAll();
+fetchWeather();
+initSync();
+setInterval(tickClock, 1000);
+setInterval(()=>{ renderSchedule(); renderMeds(); }, 60*1000);
+if('speechSynthesis' in window){ speechSynthesis.getVoices(); }
+boot();
+</script>
+</body>
+</html>
