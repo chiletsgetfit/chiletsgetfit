@@ -328,7 +328,7 @@ input:focus{border-color:var(--cyan)}
       <div class="panel-head"><span class="tag">01</span><h2>SCHEDULE</h2><span class="head-info" id="next-count"></span></div>
       <div id="schedule-list"></div>
       <div id="outlook-today" class="hide">
-        <div class="ol-head">OUTLOOK · TODAY</div>
+        <div class="ol-head" id="cal-today-label">CALENDAR · TODAY</div>
         <div id="outlook-list"></div>
       </div>
       <div id="day-progress"><i></i></div>
@@ -396,7 +396,7 @@ input:focus{border-color:var(--cyan)}
       <button class="tab" data-pane="counts">COUNTDOWNS</button>
       <button class="tab" data-pane="sync">SYNC</button>
       <button class="tab" data-pane="outlook">OUTLOOK</button>
-      <button class="tab" data-pane="gmail">GMAIL</button>
+      <button class="tab" data-pane="gmail">GOOGLE</button>
       <button class="tab" data-pane="data">DATA</button>
     </div>
 
@@ -470,14 +470,14 @@ input:focus{border-color:var(--cyan)}
     </div>
 
     <div class="pane" id="pane-gmail">
-      <div class="hint">Connects your Gmail so JARVIS can read recent mail and send messages you ask for. Needs a one-time Google Cloud OAuth client (Chilets project only). Sign-in is with Google directly; tokens stay on this device.</div>
+      <div class="hint">One Google connect for <b>Calendar + Gmail</b> (chiletsgetfit@gmail.com). Add your MidValley calendar into Google Calendar, then JARVIS only needs this. Tokens stay on this device. Skip Outlook admin consent.</div>
       <div class="frow"><label>CLIENT ID</label><input type="text" id="f-gg-client" placeholder="Google OAuth Client ID (...apps.googleusercontent.com)" style="flex:1"></div>
-      <div class="frow"><label>SECRET</label><input type="password" id="f-gg-secret" placeholder="Client secret (if Google shows one)" style="flex:1"></div>
+      <div class="frow"><label>SECRET</label><input type="password" id="f-gg-secret" placeholder="Client secret (from Google Cloud)" style="flex:1"></div>
       <div class="frow"><label>REDIRECT</label><input type="text" id="f-gg-redirect" readonly style="flex:1"></div>
-      <div class="hint" style="margin-top:2px">Add that exact URI under Authorized redirect URIs. Enable the <b>Gmail API</b>. On the consent screen, add your Gmail as a test user.</div>
+      <div class="hint" style="margin-top:2px">Enable <b>Google Calendar API</b> and <b>Gmail API</b>. Consent screen: External + add yourself as a test user. Redirect URI must match exactly.</div>
       <div class="frow" style="margin-top:10px">
         <button class="btn" id="btn-gg-save">SAVE</button>
-        <button class="btn ghost" id="btn-gg-connect">CONNECT GMAIL</button>
+        <button class="btn ghost" id="btn-gg-connect">CONNECT GOOGLE</button>
         <button class="btn ghost" id="btn-gg-off">DISCONNECT</button>
         <span id="gg-status" class="mono-label" style="margin-left:6px"></span>
       </div>
@@ -1262,33 +1262,16 @@ async function outlookCreate(ev){
   return { id: j.id, webLink: j.webLink };
 }
 
-function renderOutlookToday(){
-  const wrap = $('outlook-today'), list = $('outlook-list');
-  if(!wrap || !list) return;
-  if(!calToday.length){ wrap.classList.add('hide'); list.innerHTML=''; return; }
-  wrap.classList.remove('hide');
-  list.innerHTML = '';
-  calToday.forEach(e => {
-    const row = document.createElement('div'); row.className = 'ol-ev';
-    let label = 'ALL DAY';
-    if(!e.allDay && e.start){
-      const d = new Date(e.start);
-      label = d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}).toUpperCase();
-    }
-    row.innerHTML = '<span class="t"></span><span class="s"></span>';
-    row.querySelector('.t').textContent = label;
-    row.querySelector('.s').textContent = e.subject + (e.location ? ' · ' + e.location : '');
-    list.appendChild(row);
-  });
-}
+function renderOutlookToday(){ renderCalToday(); }
 
 async function refreshOutlookToday(){
-  if(!msConnected()){ calToday = []; renderOutlookToday(); return; }
+  if(ggConnected()){ await refreshGoogleToday(); return; }
+  if(!msConnected()){ calToday = []; renderCalToday(); return; }
   try{
     const start = new Date(); start.setHours(0,0,0,0);
     const end = new Date(start); end.setDate(end.getDate()+1);
     calToday = await outlookRange(start.toISOString(), end.toISOString());
-    renderOutlookToday();
+    renderCalToday();
   }catch(e){ setMsStatus(String(e.message).slice(0,90)); }
 }
 
@@ -1313,14 +1296,16 @@ $('btn-ms-off').onclick = () => {
   msPersist(); calToday = []; renderOutlookToday(); fillOutlookPane(); toast('OUTLOOK DISCONNECTED');
 };
 
-/* ============ Gmail / Google OAuth ============ */
+/* ============ Google (Calendar + Gmail) OAuth ============ */
 const GG_SCOPE = [
   'openid', 'email', 'profile',
+  'https://www.googleapis.com/auth/calendar.events',
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.send'
 ].join(' ');
 const ggRedirect = oauthRedirect;
 let GG = store.get('jv_gg', { clientId:'', secret:'', access:'', refresh:'', expires:0, email:'' });
+let gcalToday = [];
 
 const ggConfigured = () => !!GG.clientId;
 const ggConnected  = () => !!(ggConfigured() && GG.refresh);
@@ -1368,12 +1353,12 @@ async function ggHandleRedirect(){
   const code = p.get('code'), err = p.get('error'), state = p.get('state');
   if(!code && !err) return;
   const clean = () => { sessionStorage.removeItem('jv_oauth'); history.replaceState({}, '', ggRedirect()); };
-  if(err){ clean(); toast('GMAIL SIGN-IN FAILED'); setGgStatus((p.get('error_description')||err).slice(0,90)); return; }
+  if(err){ clean(); toast('GOOGLE SIGN-IN FAILED'); setGgStatus((p.get('error_description')||err).slice(0,90)); return; }
   const verifier = sessionStorage.getItem('jv_gg_pkce');
   const expect = sessionStorage.getItem('jv_gg_state');
   sessionStorage.removeItem('jv_gg_pkce'); sessionStorage.removeItem('jv_gg_state');
   clean();
-  if(!verifier || !expect || state !== expect){ toast('GMAIL SIGN-IN EXPIRED — TRY AGAIN'); return; }
+  if(!verifier || !expect || state !== expect){ toast('GOOGLE SIGN-IN EXPIRED — TRY AGAIN'); return; }
   try{
     await ggTokenRequest({
       grant_type:'authorization_code', code, redirect_uri: ggRedirect(),
@@ -1385,21 +1370,22 @@ async function ggHandleRedirect(){
       ggPersist();
     }catch(_){}
     setGgStatus(GG.email ? ('CONNECTED · ' + GG.email) : 'CONNECTED');
-    toast('GMAIL CONNECTED');
-  }catch(e){ setGgStatus(String(e.message).slice(0,90)); toast('GMAIL TOKEN EXCHANGE FAILED'); }
+    toast('GOOGLE CONNECTED');
+    refreshGoogleToday();
+  }catch(e){ setGgStatus(String(e.message).slice(0,90)); toast('GOOGLE TOKEN EXCHANGE FAILED'); }
 }
 
 async function ggToken(){
-  if(!ggConnected()) throw new Error('Gmail is not connected.');
+  if(!ggConnected()) throw new Error('Google is not connected.');
   if(GG.access && Date.now() < GG.expires) return GG.access;
   await ggTokenRequest({ grant_type:'refresh_token', refresh_token: GG.refresh });
-  if(!GG.access) throw new Error('Could not refresh the Gmail session.');
+  if(!GG.access) throw new Error('Could not refresh the Google session.');
   return GG.access;
 }
 
-async function gmailApi(path, init){
+async function googleFetch(base, path, init){
   const token = await ggToken();
-  const r = await fetch('https://gmail.googleapis.com' + path, {
+  const r = await fetch(base + path, {
     ...init,
     headers:{
       Authorization:'Bearer ' + token,
@@ -1408,8 +1394,72 @@ async function gmailApi(path, init){
     }
   });
   const j = await r.json().catch(()=>({}));
-  if(!r.ok) throw new Error((j.error && j.error.message) || ('Gmail HTTP ' + r.status));
+  if(!r.ok) throw new Error((j.error && j.error.message) || ('Google HTTP ' + r.status));
   return j;
+}
+async function gmailApi(path, init){ return googleFetch('https://gmail.googleapis.com', path, init); }
+async function gcalApi(path, init){ return googleFetch('https://www.googleapis.com/calendar/v3', path, init); }
+
+async function gcalRange(startISO, endISO){
+  const q = new URLSearchParams({
+    timeMin: startISO, timeMax: endISO,
+    singleEvents:'true', orderBy:'startTime', maxResults:'40'
+  });
+  const j = await gcalApi('/calendars/primary/events?' + q.toString());
+  return (j.items || []).map(e => ({
+    subject: e.summary || '(no subject)',
+    start: (e.start && (e.start.dateTime || e.start.date)) || '',
+    end: (e.end && (e.end.dateTime || e.end.date)) || '',
+    allDay: !!(e.start && e.start.date && !e.start.dateTime),
+    location: e.location || ''
+  }));
+}
+
+async function gcalCreate(ev){
+  const body = {
+    summary: ev.subject,
+    start: { dateTime: ev.start },
+    end: { dateTime: ev.end }
+  };
+  if(ev.location) body.location = ev.location;
+  if(ev.body) body.description = ev.body;
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if(tz){ body.start.timeZone = tz; body.end.timeZone = tz; }
+  const j = await gcalApi('/calendars/primary/events', { method:'POST', body: JSON.stringify(body) });
+  return { id: j.id, htmlLink: j.htmlLink };
+}
+
+function renderCalToday(){
+  const wrap = $('outlook-today'), list = $('outlook-list'), label = $('cal-today-label');
+  if(!wrap || !list) return;
+  const source = ggConnected() ? 'GOOGLE' : (msConnected() ? 'OUTLOOK' : '');
+  const rows = ggConnected() ? gcalToday : calToday;
+  if(label) label.textContent = source ? (source + ' · TODAY') : 'CALENDAR · TODAY';
+  if(!rows.length){ wrap.classList.add('hide'); list.innerHTML=''; return; }
+  wrap.classList.remove('hide');
+  list.innerHTML = '';
+  rows.forEach(e => {
+    const row = document.createElement('div'); row.className = 'ol-ev';
+    let tlabel = 'ALL DAY';
+    if(!e.allDay && e.start){
+      const d = new Date(e.start);
+      if(!Number.isNaN(d.getTime())) tlabel = d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}).toUpperCase();
+    }
+    row.innerHTML = '<span class="t"></span><span class="s"></span>';
+    row.querySelector('.t').textContent = tlabel;
+    row.querySelector('.s').textContent = e.subject + (e.location ? ' · ' + e.location : '');
+    list.appendChild(row);
+  });
+}
+
+async function refreshGoogleToday(){
+  if(!ggConnected()){ gcalToday = []; renderCalToday(); return; }
+  try{
+    const start = new Date(); start.setHours(0,0,0,0);
+    const end = new Date(start); end.setDate(end.getDate()+1);
+    gcalToday = await gcalRange(start.toISOString(), end.toISOString());
+    renderCalToday();
+  }catch(e){ setGgStatus(String(e.message).slice(0,90)); }
 }
 
 function gmailHeader(headers, name){
@@ -1469,7 +1519,7 @@ function fillGmailPane(){
 $('btn-gg-save').onclick = () => {
   GG.clientId = $('f-gg-client').value.trim();
   GG.secret = $('f-gg-secret').value.trim();
-  ggPersist(); fillGmailPane(); toast('GMAIL SETTINGS SAVED');
+  ggPersist(); fillGmailPane(); toast('GOOGLE SETTINGS SAVED');
 };
 $('btn-gg-connect').onclick = () => {
   GG.clientId = $('f-gg-client').value.trim();
@@ -1478,7 +1528,8 @@ $('btn-gg-connect').onclick = () => {
 };
 $('btn-gg-off').onclick = () => {
   GG = { clientId: GG.clientId, secret: GG.secret, access:'', refresh:'', expires:0, email:'' };
-  ggPersist(); fillGmailPane(); toast('GMAIL DISCONNECTED');
+  gcalToday = [];
+  ggPersist(); fillGmailPane(); renderCalToday(); toast('GOOGLE DISCONNECTED');
 };
 
 /* ============ assistant ============ */
@@ -1534,7 +1585,9 @@ function asstStatePayload(){
     profile:S.profile, events:S.events, meds:S.meds, plan:S.plan,
     counts:S.counts, medLog:keep, woLog:wo,
     outlookToday: calToday,
-    gmail: { connected: ggConnected(), email: GG.email || '' }
+    googleToday: gcalToday,
+    gmail: { connected: ggConnected(), email: GG.email || '' },
+    googleCalendar: ggConnected()
   };
 }
 
@@ -1605,6 +1658,15 @@ const TOOLS = {
     fetchWeather();
     return 'Profile updated.';
   },
+  async list_google_events({start, end}){
+    const evs = await gcalRange(start, end);
+    return evs.length ? JSON.stringify(evs) : 'No events in that range.';
+  },
+  async create_google_event(ev){
+    const made = await gcalCreate(ev);
+    refreshGoogleToday();
+    return 'Created on Google Calendar (id ' + made.id + ').';
+  },
   async list_outlook_events({start, end}){
     const evs = await outlookRange(start, end);
     return evs.length ? JSON.stringify(evs) : 'No events in that range.';
@@ -1666,7 +1728,8 @@ async function askJarvis(text){
           now: new Date().toString(),
           tz: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
           outlookConnected: msConnected(),
-          gmailConnected: ggConnected()
+          gmailConnected: ggConnected(),
+          googleCalendarConnected: ggConnected()
         })
       });
       const j = await r.json().catch(()=>({}));
@@ -1718,7 +1781,8 @@ async function verifyAsstKey(key){
       now: new Date().toString(),
       tz: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
       outlookConnected: msConnected(),
-      gmailConnected: ggConnected()
+      gmailConnected: ggConnected(),
+      googleCalendarConnected: ggConnected()
     })
   });
   const j = await r.json().catch(()=>({}));
@@ -1808,10 +1872,10 @@ initSync();
 Promise.resolve()
   .then(msHandleRedirect)
   .then(ggHandleRedirect)
-  .then(refreshOutlookToday);
+  .then(() => refreshOutlookToday());
 setInterval(tickClock, 1000);
 setInterval(()=>{ renderSchedule(); renderMeds(); }, 60*1000);
-setInterval(refreshOutlookToday, 10*60*1000);
+setInterval(() => { refreshOutlookToday(); }, 10*60*1000);
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') refreshOutlookToday(); });
 if('speechSynthesis' in window){ speechSynthesis.getVoices(); }
 boot();

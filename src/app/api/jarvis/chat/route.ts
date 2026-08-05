@@ -30,7 +30,7 @@ const TOOL_DEFS: ToolDef[] = [
   {
     name: "add_event",
     description:
-      "Add a recurring item to the daily schedule. Schedule items repeat weekly on the given days — they are not one-off dated appointments. For a dated appointment, use create_outlook_event instead.",
+      "Add a recurring item to the daily schedule. Schedule items repeat weekly on the given days — they are not one-off dated appointments. For a dated appointment, use create_google_event (preferred) or create_outlook_event.",
     input_schema: {
       type: "object",
       properties: {
@@ -173,9 +173,38 @@ const TOOL_DEFS: ToolDef[] = [
     },
   },
   {
+    name: "list_google_events",
+    description:
+      "Read dated appointments from the connected Google Calendar for a time range. Prefer this over Outlook when Google Calendar is connected.",
+    input_schema: {
+      type: "object",
+      properties: {
+        start: { type: "string", description: "Range start as an ISO 8601 timestamp" },
+        end: { type: "string", description: "Range end as an ISO 8601 timestamp" },
+      },
+      required: ["start", "end"],
+    },
+  },
+  {
+    name: "create_google_event",
+    description:
+      "Create a dated appointment on the connected Google Calendar. Prefer this over Outlook when Google Calendar is connected.",
+    input_schema: {
+      type: "object",
+      properties: {
+        subject: { type: "string" },
+        start: { type: "string", description: "Start as an ISO 8601 timestamp" },
+        end: { type: "string", description: "End as an ISO 8601 timestamp" },
+        location: { type: "string" },
+        body: { type: "string", description: "Optional notes" },
+      },
+      required: ["subject", "start", "end"],
+    },
+  },
+  {
     name: "list_outlook_events",
     description:
-      "Read dated appointments from the connected Outlook calendar for a time range. Use this for questions about actual meetings, not the recurring schedule.",
+      "Read dated appointments from the connected Outlook calendar. Only use if Google Calendar is not connected.",
     input_schema: {
       type: "object",
       properties: {
@@ -188,7 +217,7 @@ const TOOL_DEFS: ToolDef[] = [
   {
     name: "create_outlook_event",
     description:
-      "Create a dated appointment on the connected Outlook calendar. This writes to the real calendar, so only do it when asked for an actual appointment.",
+      "Create a dated appointment on Outlook. Only use if Google Calendar is not connected.",
     input_schema: {
       type: "object",
       properties: {
@@ -257,17 +286,24 @@ function systemPrompt(
   tz: string,
   outlookConnected: boolean,
   gmailConnected: boolean,
+  googleCalendarConnected: boolean,
 ) {
-  return `You are JARVIS, the assistant built into Andrew's personal dashboard. You manage his recurring schedule, medications, training plan, and countdowns; you can read/write his Outlook calendar; and you can read/send Gmail.
+  const cal = googleCalendarConnected
+    ? "Google Calendar is connected — use list_google_events / create_google_event for dated appointments."
+    : outlookConnected
+      ? "Outlook is connected (Google Calendar is not) — use list_outlook_events / create_outlook_event."
+      : "No dated calendar is connected yet — say so rather than pretending.";
+
+  return `You are JARVIS, the assistant built into Andrew's personal dashboard. You manage his recurring schedule, medications, training plan, and countdowns; you can use Google Calendar (preferred) or Outlook for dated appointments; and you can read/send Gmail.
 
 The current date and time on his device is ${now} (${tz}). Resolve relative dates and times against that, never against your own assumptions.
 
 Keep these separate:
 - The **schedule** is weekly recurring items with a time and weekdays — no dates.
-- **Outlook** holds dated calendar appointments. ${outlookConnected ? "It is connected." : "It is NOT connected yet — say so rather than pretending."}
+- **Dated calendar**: ${cal}
 - **Gmail** is email. ${gmailConnected ? "It is connected." : "It is NOT connected yet — say so rather than pretending."}
 
-When he asks for something on a specific date, that is an Outlook event. When he describes a routine ("every weekday", "on Mondays"), that is a schedule item. Inbox / email questions use Gmail tools.
+When he asks for something on a specific date, that is a calendar event (Google preferred). When he describes a routine ("every weekday", "on Mondays"), that is a schedule item. Inbox / email questions use Gmail tools.
 
 His current dashboard state is below. Use the ids from it when updating or deleting anything.
 
@@ -277,7 +313,7 @@ ${JSON.stringify(state, null, 1)}
 
 Make the change he asks for, then confirm it in one short sentence — this is spoken aloud, so keep it brief and natural, and don't read back ids or JSON. Voice: calm butler, lightly dry — never chipper, never verbose.
 
-Before any destructive action (remove_event, remove_med, remove_countdown), writing to Outlook (create_outlook_event), or sending email (send_gmail), confirm once in plain language and wait for a yes — unless he already said "delete", "remove", "book it", "send it", or similar. Soft edits (move a time, log a dose, mark a workout) can proceed immediately.
+Before any destructive action (remove_event, remove_med, remove_countdown), writing to a calendar (create_google_event / create_outlook_event), or sending email (send_gmail), confirm once in plain language and wait for a yes — unless he already said "delete", "remove", "book it", "send it", or similar. Soft edits (move a time, log a dose, mark a workout) can proceed immediately.
 
 If a request is ambiguous in a way that changes what you'd do, ask instead of guessing. If he's only asking a question, answer it without calling any tools.`;
 }
@@ -397,6 +433,7 @@ export async function POST(request: Request) {
     tz?: string;
     outlookConnected?: boolean;
     gmailConnected?: boolean;
+    googleCalendarConnected?: boolean;
   };
   try {
     body = await request.json();
@@ -404,7 +441,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "Malformed request body." }, { status: 400 });
   }
 
-  const { messages, state, now, tz, outlookConnected, gmailConnected } = body;
+  const { messages, state, now, tz, outlookConnected, gmailConnected, googleCalendarConnected } =
+    body;
   if (!Array.isArray(messages) || messages.length === 0) {
     return Response.json({ error: "messages is required." }, { status: 400 });
   }
@@ -423,6 +461,7 @@ export async function POST(request: Request) {
             tz ?? "unknown timezone",
             Boolean(outlookConnected),
             Boolean(gmailConnected),
+            Boolean(googleCalendarConnected ?? gmailConnected),
           ),
         },
         ...toOpenAIMessages(messages),
