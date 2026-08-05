@@ -39,6 +39,11 @@ body{
   min-height:100vh;
   min-height:100dvh;
 }
+/* iOS Safari cannot type reliably when ancestors set user-select:none */
+input,textarea,select,button,[contenteditable="true"]{
+  -webkit-user-select:text !important;user-select:text !important;
+  -webkit-touch-callout:default;
+}
 body::before{
   content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
   background:
@@ -259,6 +264,13 @@ input:focus{border-color:var(--cyan)}
   box-shadow:0 18px 50px rgba(0,0,0,.55);
 }
 #asst.on{display:flex}
+@media (max-width:640px){
+  #asst.on{
+    inset:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom));
+    width:auto;max-height:none;right:8px;bottom:8px;left:8px;
+  }
+  #asst-fab{right:14px;bottom:max(14px,env(safe-area-inset-bottom))}
+}
 #asst-head{display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:1px solid var(--line)}
 #asst-head h3{font-size:11px;letter-spacing:.24em;color:var(--cyan);font-weight:600}
 #asst-state{font-size:9px;letter-spacing:.16em;color:var(--ink3);margin-left:auto}
@@ -313,7 +325,7 @@ input:focus{border-color:var(--cyan)}
       <div id="greeting">GOOD EVENING</div>
       <div id="sysline">ALL SYSTEMS NOMINAL</div>
       <div id="sync-ind"></div>
-      <div id="build-ind">BUILD 2026.08.05-gcal</div>
+      <div id="build-ind">BUILD 2026.08.05-mobile2</div>
       <div id="build-ind">BUILD 2026.08.05-gcal</div>
     </div>
     <div class="reactor" id="reactor" title="Tap for spoken briefing">
@@ -456,6 +468,9 @@ input:focus{border-color:var(--cyan)}
       <div class="frow"><label>ANON KEY</label><input type="text" id="f-sb-key" placeholder="eyJhbGciOi..." style="flex:1"></div>
       <div class="frow"><label>SYNC CODE</label><input type="text" id="f-sync-code" placeholder="Same code on every device" style="flex:1"><button class="btn ghost" id="btn-gen-code">GENERATE</button></div>
       <div class="frow"><button class="btn" id="btn-sync-save">ENABLE SYNC</button><button class="btn ghost" id="btn-sync-off">DISABLE</button><span id="sync-status" class="mono-label" style="margin-left:6px"></span></div>
+      <hr class="sep">
+      <div class="hint">Chat unlock key (JARVIS_CHAT_KEY). Paste once per device if chat says locked.</div>
+      <div class="frow"><label>CHAT KEY</label><input type="text" id="f-asst-key" autocomplete="off" spellcheck="false" placeholder="local-test-passphrase" style="flex:1"><button class="btn" id="btn-asst-key">SAVE KEY</button></div>
     </div>
 
     <div class="pane" id="pane-outlook">
@@ -503,7 +518,7 @@ input:focus{border-color:var(--cyan)}
   <div id="asst-head">
     <h3>J.A.R.V.I.S</h3>
     <span id="asst-state">READY</span>
-    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.05-gcal</span>
+    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.05-mobile2</span>
     <button id="asst-close">CLOSE ✕</button>
   </div>
   <div id="asst-log"></div>
@@ -1074,8 +1089,22 @@ document.addEventListener('visibilitychange', () => { if(document.visibilityStat
 /* sync settings UI */
 function fillSyncPane(){
   $('f-sb-url').value = SYNC.url||''; $('f-sb-key').value = SYNC.key||''; $('f-sync-code').value = SYNC.code||'';
+  $('f-asst-key').value = asstKey || '';
   $('sync-status').textContent = SYNC.enabled ? 'SYNC IS ON' : 'SYNC IS OFF';
 }
+$('btn-asst-key').onclick = async () => {
+  let v = ($('f-asst-key').value || '').trim();
+  if(/^JARVIS_CHAT_KEY=/i.test(v)) v = v.replace(/^JARVIS_CHAT_KEY=/i,'').trim();
+  if(!v){ toast('PASTE THE CHAT KEY FIRST'); return; }
+  if(/^gsk_/i.test(v)){ toast('THAT IS THE GROQ KEY — USE JARVIS_CHAT_KEY'); return; }
+  const btn = $('btn-asst-key');
+  btn.disabled = true; btn.textContent = 'CHECKING…';
+  const check = await verifyAsstKey(v);
+  btn.disabled = false; btn.textContent = 'SAVE KEY';
+  if(!check.ok){ toast((check.error || 'KEY FAILED').toUpperCase()); return; }
+  asstKey = v; store.set('jv_asstkey', v);
+  toast('CHAT UNLOCKED ON THIS DEVICE');
+};
 $('btn-gen-code').onclick = () => {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   const buf = crypto.getRandomValues(new Uint8Array(16));
@@ -1543,6 +1572,10 @@ let asstBusy = false;
 /* The chat endpoint is public, so it requires a shared passphrase that lives
    only on the device. Prompted for inline the first time it's needed. */
 let asstKey = store.get('jv_asstkey', '');
+/* Common mistake: pasting the Groq API key into the unlock box. */
+if(typeof asstKey === 'string' && /^gsk_/i.test(asstKey)){
+  asstKey = ''; store.set('jv_asstkey', '');
+}
 
 function asstSay(text, cls){
   const el = document.createElement('div');
@@ -1801,9 +1834,9 @@ function promptForKey(){
   const row = document.createElement('form');
   row.id = 'asst-unlock-form';
   row.style.cssText = 'display:flex;gap:7px;align-self:stretch;flex-wrap:wrap';
-  row.innerHTML = '<input type="text" autocomplete="off" spellcheck="false" placeholder="JARVIS_CHAT_KEY value" ' +
+  row.innerHTML = '<input type="text" autocomplete="off" spellcheck="false" enterkeyhint="done" placeholder="local-test-passphrase" ' +
     'style="flex:1;min-width:180px;background:rgba(4,7,13,.6);border:1px solid var(--line);border-radius:7px;' +
-    'color:var(--ink);padding:8px 10px;font:inherit;font-size:12.5px">' +
+    'color:var(--ink);padding:8px 10px;font:inherit;font-size:16px;-webkit-user-select:text;user-select:text">' +
     '<button class="btn" type="submit">UNLOCK</button>';
   row.onsubmit = async e => {
     e.preventDefault();
@@ -1814,6 +1847,11 @@ function promptForKey(){
     if(/^JARVIS_CHAT_KEY=/i.test(v)) v = v.replace(/^JARVIS_CHAT_KEY=/i,'').trim();
     if(/^["']/.test(v) && /["']$/.test(v)) v = v.slice(1,-1).trim();
     if(!v) return;
+    if(/^gsk_/i.test(v)){
+      asstSay('That is the Groq API key. Unlock with local-test-passphrase instead.', 'err');
+      input.value = ''; input.focus();
+      return;
+    }
     btn.disabled = true; btn.textContent = 'CHECKING…'; asstState('UNLOCKING…');
     const check = await verifyAsstKey(v);
     if(!check.ok){
@@ -1862,8 +1900,19 @@ $('asst-form').addEventListener('submit', e => {
 });
 function openAsst(){
   $('asst').classList.add('on'); $('asst-fab').classList.add('hide');
-  if(!$('asst-log').children.length) asstSay('Standing by. What do you need?');
-  setTimeout(()=>$('asst-in').focus(), 60);
+  if(!$('asst-log').children.length){
+    if(!asstKey){
+      asstSay('Standing by — unlock chat on this device first.');
+      promptForKey();
+    } else {
+      asstSay('Standing by. What do you need?');
+    }
+  }
+  setTimeout(()=>{
+    const unlock = $('asst-unlock-form');
+    if(unlock){ const inp = unlock.querySelector('input'); if(inp) inp.focus(); }
+    else $('asst-in').focus();
+  }, 80);
 }
 $('asst-fab').onclick = openAsst;
 $('asst-close').onclick = () => { $('asst').classList.remove('on'); $('asst-fab').classList.remove('hide'); if('speechSynthesis' in window) speechSynthesis.cancel(); };
