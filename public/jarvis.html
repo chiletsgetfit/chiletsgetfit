@@ -85,6 +85,7 @@ header.panel{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
 .h-left #sysline::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--good);margin-right:8px;box-shadow:0 0 8px var(--good);animation:pulse 2.4s infinite}
 #sync-ind{margin-top:4px;font-size:9px;letter-spacing:.2em;color:var(--ink3)}
 #sync-ind.err{color:var(--warn)}
+#build-ind{margin-top:3px;font-size:8px;letter-spacing:.16em;color:var(--ink3);opacity:.75}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .h-right{text-align:right}
 #clock{font-size:clamp(30px,4.6vw,46px);font-weight:700;letter-spacing:.06em;line-height:1;text-shadow:0 0 22px var(--cyan-glow)}
@@ -312,6 +313,8 @@ input:focus{border-color:var(--cyan)}
       <div id="greeting">GOOD EVENING</div>
       <div id="sysline">ALL SYSTEMS NOMINAL</div>
       <div id="sync-ind"></div>
+      <div id="build-ind">BUILD 2026.08.05-gcal</div>
+      <div id="build-ind">BUILD 2026.08.05-gcal</div>
     </div>
     <div class="reactor" id="reactor" title="Tap for spoken briefing">
       <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="core"></div>
@@ -500,6 +503,7 @@ input:focus{border-color:var(--cyan)}
   <div id="asst-head">
     <h3>J.A.R.V.I.S</h3>
     <span id="asst-state">READY</span>
+    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.05-gcal</span>
     <button id="asst-close">CLOSE ✕</button>
   </div>
   <div id="asst-log"></div>
