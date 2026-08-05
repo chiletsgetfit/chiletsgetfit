@@ -396,6 +396,7 @@ input:focus{border-color:var(--cyan)}
       <button class="tab" data-pane="counts">COUNTDOWNS</button>
       <button class="tab" data-pane="sync">SYNC</button>
       <button class="tab" data-pane="outlook">OUTLOOK</button>
+      <button class="tab" data-pane="gmail">GMAIL</button>
       <button class="tab" data-pane="data">DATA</button>
     </div>
 
@@ -455,9 +456,9 @@ input:focus{border-color:var(--cyan)}
     </div>
 
     <div class="pane" id="pane-outlook">
-      <div class="hint">Connects your Microsoft 365 work calendar so JARVIS can read your real appointments and book new ones. This needs a one-time app registration in Azure — see the setup guide for the exact steps. Sign-in happens with Microsoft directly; no password ever touches this page, and the tokens stay on this device.</div>
+      <div class="hint">Connects your Outlook / Microsoft calendar so JARVIS can read appointments and book new ones. Use a Chilets/personal Azure app registration (not MidValley). For personal Microsoft accounts, set TENANT to <b>common</b>. Sign-in is with Microsoft directly; tokens stay on this device.</div>
       <div class="frow"><label>CLIENT ID</label><input type="text" id="f-ms-client" placeholder="Application (client) ID from Azure" style="flex:1"></div>
-      <div class="frow"><label>TENANT ID</label><input type="text" id="f-ms-tenant" placeholder="Directory (tenant) ID" style="flex:1"></div>
+      <div class="frow"><label>TENANT</label><input type="text" id="f-ms-tenant" placeholder="common  (or your Directory tenant ID)" style="flex:1"></div>
       <div class="frow"><label>REDIRECT</label><input type="text" id="f-ms-redirect" readonly style="flex:1"></div>
       <div class="hint" style="margin-top:2px">Register that exact redirect URI in Azure under <b>Single-page application</b> — not Web, or sign-in will fail.</div>
       <div class="frow" style="margin-top:10px">
@@ -465,6 +466,20 @@ input:focus{border-color:var(--cyan)}
         <button class="btn ghost" id="btn-ms-connect">CONNECT OUTLOOK</button>
         <button class="btn ghost" id="btn-ms-off">DISCONNECT</button>
         <span id="ms-status" class="mono-label" style="margin-left:6px"></span>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-gmail">
+      <div class="hint">Connects your Gmail so JARVIS can read recent mail and send messages you ask for. Needs a one-time Google Cloud OAuth client (Chilets project only). Sign-in is with Google directly; tokens stay on this device.</div>
+      <div class="frow"><label>CLIENT ID</label><input type="text" id="f-gg-client" placeholder="Google OAuth Client ID (...apps.googleusercontent.com)" style="flex:1"></div>
+      <div class="frow"><label>SECRET</label><input type="password" id="f-gg-secret" placeholder="Client secret (if Google shows one)" style="flex:1"></div>
+      <div class="frow"><label>REDIRECT</label><input type="text" id="f-gg-redirect" readonly style="flex:1"></div>
+      <div class="hint" style="margin-top:2px">Add that exact URI under Authorized redirect URIs. Enable the <b>Gmail API</b>. On the consent screen, add your Gmail as a test user.</div>
+      <div class="frow" style="margin-top:10px">
+        <button class="btn" id="btn-gg-save">SAVE</button>
+        <button class="btn ghost" id="btn-gg-connect">CONNECT GMAIL</button>
+        <button class="btn ghost" id="btn-gg-off">DISCONNECT</button>
+        <span id="gg-status" class="mono-label" style="margin-left:6px"></span>
       </div>
     </div>
 
@@ -835,7 +850,7 @@ document.querySelectorAll('.tab').forEach(tab => {
 function openSettings(){
   $('f-name').value = S.profile.name; $('f-unit').value = S.profile.unit;
   $('f-locname').value = S.profile.locName; $('f-lat').value = S.profile.lat; $('f-lon').value = S.profile.lon;
-  renderEvEdit(); renderMedEdit(); renderPlanEdit(); renderCountEdit(); fillSyncPane(); fillOutlookPane();
+  renderEvEdit(); renderMedEdit(); renderPlanEdit(); renderCountEdit(); fillSyncPane(); fillOutlookPane(); fillGmailPane();
   backdrop.classList.add('open');
 }
 $('btn-save-profile').onclick = () => {
@@ -1118,25 +1133,8 @@ function boot(){
   $('boot').addEventListener('click', ()=> $('boot').classList.add('off'));
 }
 
-/* ============ Outlook / Microsoft Graph ============ */
-/* Browser-only OAuth 2.0 authorization code flow with PKCE. There is no client
-   secret and no server hop: tokens are issued to this device and stay here, so
-   the calendar connection has the same "nothing leaves the device" property as
-   the encrypted sync. Requires an Azure app registration whose redirect URI is
-   registered as a Single-page application (that's what allows the CORS token
-   exchange below). */
-const MS_SCOPE = 'openid profile offline_access Calendars.ReadWrite';
-const msRedirect = () => location.origin + location.pathname;
-let MS = store.get('jv_ms', { clientId:'', tenantId:'', access:'', refresh:'', expires:0 });
-let calToday = [];
-
-const msConfigured = () => !!(MS.clientId && MS.tenantId);
-const msConnected  = () => !!(msConfigured() && MS.refresh);
-const msAuthority  = () => 'https://login.microsoftonline.com/' + encodeURIComponent(MS.tenantId) + '/oauth2/v2.0';
-
-function msPersist(){ store.set('jv_ms', MS); }
-function setMsStatus(txt){ const el = $('ms-status'); if(el) el.textContent = txt; }
-
+/* ============ shared OAuth helpers ============ */
+const oauthRedirect = () => location.origin + location.pathname;
 async function pkcePair(){
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   const verifier = b64url(bytes);
@@ -1147,10 +1145,28 @@ function b64url(bytes){
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
 
+/* ============ Outlook / Microsoft Graph ============ */
+/* Browser-only OAuth 2.0 + PKCE. Tokens stay on this device. Azure app redirect
+   URI must be registered as Single-page application. Tenant "common" covers
+   personal Microsoft accounts and work/school; use a Chilets/personal app reg. */
+const MS_SCOPE = 'openid profile offline_access Calendars.ReadWrite';
+const msRedirect = oauthRedirect;
+let MS = store.get('jv_ms', { clientId:'', tenantId:'common', access:'', refresh:'', expires:0 });
+if(!MS.tenantId) MS.tenantId = 'common';
+let calToday = [];
+
+const msConfigured = () => !!(MS.clientId && MS.tenantId);
+const msConnected  = () => !!(msConfigured() && MS.refresh);
+const msAuthority  = () => 'https://login.microsoftonline.com/' + encodeURIComponent(MS.tenantId || 'common') + '/oauth2/v2.0';
+
+function msPersist(){ store.set('jv_ms', MS); }
+function setMsStatus(txt){ const el = $('ms-status'); if(el) el.textContent = txt; }
+
 async function msBeginAuth(){
-  if(!msConfigured()){ toast('ADD CLIENT ID AND TENANT ID FIRST'); return; }
+  if(!msConfigured()){ toast('ADD CLIENT ID FIRST'); return; }
   const { verifier, challenge } = await pkcePair();
-  const state = b64url(crypto.getRandomValues(new Uint8Array(12)));
+  const state = 'ms.' + b64url(crypto.getRandomValues(new Uint8Array(12)));
+  sessionStorage.setItem('jv_oauth', 'ms');
   sessionStorage.setItem('jv_ms_pkce', verifier);
   sessionStorage.setItem('jv_ms_state', state);
   const q = new URLSearchParams({
@@ -1176,12 +1192,12 @@ async function msTokenRequest(params){
   return j;
 }
 
-/* Completes the redirect leg if we've just come back from Microsoft. */
 async function msHandleRedirect(){
+  if(sessionStorage.getItem('jv_oauth') !== 'ms') return;
   const p = new URLSearchParams(location.search);
   const code = p.get('code'), err = p.get('error'), state = p.get('state');
   if(!code && !err) return;
-  const clean = () => history.replaceState({}, '', msRedirect());
+  const clean = () => { sessionStorage.removeItem('jv_oauth'); history.replaceState({}, '', msRedirect()); };
   if(err){ clean(); toast('OUTLOOK SIGN-IN FAILED'); setMsStatus((p.get('error_description')||err).slice(0,90)); return; }
   const verifier = sessionStorage.getItem('jv_ms_pkce');
   const expect = sessionStorage.getItem('jv_ms_state');
@@ -1294,8 +1310,176 @@ $('btn-ms-connect').onclick = () => {
   msPersist(); msBeginAuth();
 };
 $('btn-ms-off').onclick = () => {
-  MS = { clientId: MS.clientId, tenantId: MS.tenantId, access:'', refresh:'', expires:0 };
+  MS = { clientId: MS.clientId, tenantId: MS.tenantId || 'common', access:'', refresh:'', expires:0 };
   msPersist(); calToday = []; renderOutlookToday(); fillOutlookPane(); toast('OUTLOOK DISCONNECTED');
+};
+
+/* ============ Gmail / Google OAuth ============ */
+const GG_SCOPE = [
+  'openid', 'email', 'profile',
+  'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/gmail.send'
+].join(' ');
+const ggRedirect = oauthRedirect;
+let GG = store.get('jv_gg', { clientId:'', secret:'', access:'', refresh:'', expires:0, email:'' });
+
+const ggConfigured = () => !!GG.clientId;
+const ggConnected  = () => !!(ggConfigured() && GG.refresh);
+function ggPersist(){ store.set('jv_gg', GG); }
+function setGgStatus(txt){ const el = $('gg-status'); if(el) el.textContent = txt; }
+function ggTokenBody(params){
+  const body = { client_id: GG.clientId, ...params };
+  if(GG.secret) body.client_secret = GG.secret;
+  return body;
+}
+
+async function ggBeginAuth(){
+  if(!ggConfigured()){ toast('ADD GOOGLE CLIENT ID FIRST'); return; }
+  const { verifier, challenge } = await pkcePair();
+  const state = 'gg.' + b64url(crypto.getRandomValues(new Uint8Array(12)));
+  sessionStorage.setItem('jv_oauth', 'gg');
+  sessionStorage.setItem('jv_gg_pkce', verifier);
+  sessionStorage.setItem('jv_gg_state', state);
+  const q = new URLSearchParams({
+    client_id: GG.clientId, response_type:'code', redirect_uri: ggRedirect(),
+    scope: GG_SCOPE, state, code_challenge: challenge, code_challenge_method:'S256',
+    access_type:'offline', prompt:'consent', include_granted_scopes:'true'
+  });
+  location.assign('https://accounts.google.com/o/oauth2/v2/auth?' + q.toString());
+}
+
+async function ggTokenRequest(params){
+  const r = await fetch('https://oauth2.googleapis.com/token', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(ggTokenBody(params)).toString()
+  });
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.error_description || j.error || ('HTTP ' + r.status));
+  GG.access  = j.access_token || '';
+  if(j.refresh_token) GG.refresh = j.refresh_token;
+  GG.expires = Date.now() + ((j.expires_in || 3600) - 120) * 1000;
+  ggPersist();
+  return j;
+}
+
+async function ggHandleRedirect(){
+  if(sessionStorage.getItem('jv_oauth') !== 'gg') return;
+  const p = new URLSearchParams(location.search);
+  const code = p.get('code'), err = p.get('error'), state = p.get('state');
+  if(!code && !err) return;
+  const clean = () => { sessionStorage.removeItem('jv_oauth'); history.replaceState({}, '', ggRedirect()); };
+  if(err){ clean(); toast('GMAIL SIGN-IN FAILED'); setGgStatus((p.get('error_description')||err).slice(0,90)); return; }
+  const verifier = sessionStorage.getItem('jv_gg_pkce');
+  const expect = sessionStorage.getItem('jv_gg_state');
+  sessionStorage.removeItem('jv_gg_pkce'); sessionStorage.removeItem('jv_gg_state');
+  clean();
+  if(!verifier || !expect || state !== expect){ toast('GMAIL SIGN-IN EXPIRED — TRY AGAIN'); return; }
+  try{
+    await ggTokenRequest({
+      grant_type:'authorization_code', code, redirect_uri: ggRedirect(),
+      code_verifier: verifier
+    });
+    try{
+      const me = await gmailApi('/gmail/v1/users/me/profile');
+      GG.email = me.emailAddress || '';
+      ggPersist();
+    }catch(_){}
+    setGgStatus(GG.email ? ('CONNECTED · ' + GG.email) : 'CONNECTED');
+    toast('GMAIL CONNECTED');
+  }catch(e){ setGgStatus(String(e.message).slice(0,90)); toast('GMAIL TOKEN EXCHANGE FAILED'); }
+}
+
+async function ggToken(){
+  if(!ggConnected()) throw new Error('Gmail is not connected.');
+  if(GG.access && Date.now() < GG.expires) return GG.access;
+  await ggTokenRequest({ grant_type:'refresh_token', refresh_token: GG.refresh });
+  if(!GG.access) throw new Error('Could not refresh the Gmail session.');
+  return GG.access;
+}
+
+async function gmailApi(path, init){
+  const token = await ggToken();
+  const r = await fetch('https://gmail.googleapis.com' + path, {
+    ...init,
+    headers:{
+      Authorization:'Bearer ' + token,
+      'Content-Type':'application/json',
+      ...(init && init.headers)
+    }
+  });
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error((j.error && j.error.message) || ('Gmail HTTP ' + r.status));
+  return j;
+}
+
+function gmailHeader(headers, name){
+  const h = (headers || []).find(x => (x.name || '').toLowerCase() === name.toLowerCase());
+  return h ? h.value : '';
+}
+
+async function gmailListRecent({ max = 8, query = 'in:inbox' } = {}){
+  const q = new URLSearchParams({ maxResults:String(Math.min(Number(max)||8, 20)), q: query || 'in:inbox' });
+  const list = await gmailApi('/gmail/v1/users/me/messages?' + q.toString());
+  const ids = (list.messages || []).map(m => m.id);
+  const out = [];
+  for(const id of ids){
+    const m = await gmailApi('/gmail/v1/users/me/messages/' + encodeURIComponent(id) + '?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date');
+    out.push({
+      id,
+      from: gmailHeader(m.payload && m.payload.headers, 'From'),
+      subject: gmailHeader(m.payload && m.payload.headers, 'Subject') || '(no subject)',
+      date: gmailHeader(m.payload && m.payload.headers, 'Date'),
+      snippet: m.snippet || ''
+    });
+  }
+  return out;
+}
+
+function toBase64Url(str){
+  const bytes = _enc.encode(str);
+  let bin = '';
+  bytes.forEach(b => { bin += String.fromCharCode(b); });
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+
+async function gmailSend({ to, subject, body }){
+  if(!to || !subject) throw new Error('to and subject are required');
+  const from = GG.email || 'me';
+  const raw = [
+    'To: ' + to,
+    'From: ' + from,
+    'Subject: ' + subject,
+    'Content-Type: text/plain; charset="UTF-8"',
+    '',
+    body || ''
+  ].join('\r\n');
+  const j = await gmailApi('/gmail/v1/users/me/messages/send', {
+    method:'POST',
+    body: JSON.stringify({ raw: toBase64Url(raw) })
+  });
+  return { id: j.id };
+}
+
+function fillGmailPane(){
+  $('f-gg-client').value = GG.clientId || '';
+  $('f-gg-secret').value = GG.secret || '';
+  $('f-gg-redirect').value = ggRedirect();
+  setGgStatus(ggConnected() ? (GG.email ? ('CONNECTED · ' + GG.email) : 'CONNECTED') : ggConfigured() ? 'NOT CONNECTED' : 'NOT CONFIGURED');
+}
+$('btn-gg-save').onclick = () => {
+  GG.clientId = $('f-gg-client').value.trim();
+  GG.secret = $('f-gg-secret').value.trim();
+  ggPersist(); fillGmailPane(); toast('GMAIL SETTINGS SAVED');
+};
+$('btn-gg-connect').onclick = () => {
+  GG.clientId = $('f-gg-client').value.trim();
+  GG.secret = $('f-gg-secret').value.trim();
+  ggPersist(); ggBeginAuth();
+};
+$('btn-gg-off').onclick = () => {
+  GG = { clientId: GG.clientId, secret: GG.secret, access:'', refresh:'', expires:0, email:'' };
+  ggPersist(); fillGmailPane(); toast('GMAIL DISCONNECTED');
 };
 
 /* ============ assistant ============ */
@@ -1350,7 +1534,8 @@ function asstStatePayload(){
   return {
     profile:S.profile, events:S.events, meds:S.meds, plan:S.plan,
     counts:S.counts, medLog:keep, woLog:wo,
-    outlookToday: calToday
+    outlookToday: calToday,
+    gmail: { connected: ggConnected(), email: GG.email || '' }
   };
 }
 
@@ -1429,6 +1614,14 @@ const TOOLS = {
     const made = await outlookCreate(ev);
     refreshOutlookToday();
     return 'Created on the Outlook calendar (id ' + made.id + ').';
+  },
+  async list_gmail({ max, query }){
+    const msgs = await gmailListRecent({ max, query });
+    return msgs.length ? JSON.stringify(msgs) : 'No messages matched.';
+  },
+  async send_gmail({ to, subject, body }){
+    const made = await gmailSend({ to, subject, body });
+    return 'Sent via Gmail (id ' + made.id + ').';
   }
 };
 const LOCAL_TOOLS = new Set(['add_event','update_event','remove_event','add_med','remove_med',
@@ -1473,7 +1666,8 @@ async function askJarvis(text){
           state: asstStatePayload(),
           now: new Date().toString(),
           tz: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
-          outlookConnected: msConnected()
+          outlookConnected: msConnected(),
+          gmailConnected: ggConnected()
         })
       });
       const j = await r.json().catch(()=>({}));
@@ -1524,7 +1718,8 @@ async function verifyAsstKey(key){
       state: asstStatePayload(),
       now: new Date().toString(),
       tz: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
-      outlookConnected: msConnected()
+      outlookConnected: msConnected(),
+      gmailConnected: ggConnected()
     })
   });
   const j = await r.json().catch(()=>({}));
@@ -1611,7 +1806,10 @@ function renderAll(){ tickClock(); renderSchedule(); renderMeds(); renderWorkout
 renderAll();
 fetchWeather();
 initSync();
-msHandleRedirect().then(refreshOutlookToday);
+Promise.resolve()
+  .then(msHandleRedirect)
+  .then(ggHandleRedirect)
+  .then(refreshOutlookToday);
 setInterval(tickClock, 1000);
 setInterval(()=>{ renderSchedule(); renderMeds(); }, 60*1000);
 setInterval(refreshOutlookToday, 10*60*1000);

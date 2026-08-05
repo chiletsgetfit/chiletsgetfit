@@ -65,7 +65,15 @@ For local development the same vars are stubbed in `.env.local`.
 
 ---
 
-## Step 2 — Azure app registration (for Outlook)
+## Step 2 — Outlook + Gmail
+
+Use the Chilets-only guide (personal Microsoft + chiletsgetfit@gmail.com — no MidValley):
+
+→ see **`JARVIS-Outlook-and-Gmail-Setup.md`**
+
+Legacy Mid Valley tenant notes below are obsolete for this project; kept only for reference.
+
+<details><summary>Old Mid Valley Azure steps (do not use for Chilets)</summary>
 
 This is a one-time registration in the Mid Valley tenant. If your account can't create
 app registrations, this is the point where you'd need IT to do it or grant consent.
@@ -94,6 +102,8 @@ Then in the dashboard: **CONFIG → OUTLOOK**, paste the client ID and tenant ID
 touches this page — and land back on the dashboard.
 
 Tokens are stored on the device and refreshed automatically. **DISCONNECT** clears them.
+
+</details>
 
 ---
 

@@ -188,7 +188,7 @@ const TOOL_DEFS: ToolDef[] = [
   {
     name: "create_outlook_event",
     description:
-      "Create a dated appointment on the connected Outlook calendar. This writes to the real work calendar, so only do it when asked for an actual appointment.",
+      "Create a dated appointment on the connected Outlook calendar. This writes to the real calendar, so only do it when asked for an actual appointment.",
     input_schema: {
       type: "object",
       properties: {
@@ -199,6 +199,35 @@ const TOOL_DEFS: ToolDef[] = [
         body: { type: "string", description: "Optional notes" },
       },
       required: ["subject", "start", "end"],
+    },
+  },
+  {
+    name: "list_gmail",
+    description:
+      "List recent Gmail messages (metadata + snippet). Use for inbox questions like 'any new mail?' or 'emails from X'.",
+    input_schema: {
+      type: "object",
+      properties: {
+        max: { type: "integer", description: "How many messages to return (default 8, max 20)" },
+        query: {
+          type: "string",
+          description: "Gmail search query, e.g. 'in:inbox', 'from:boss@example.com newer_than:2d'",
+        },
+      },
+    },
+  },
+  {
+    name: "send_gmail",
+    description:
+      "Send an email from the connected Gmail account. Only do this when he clearly asks you to send a message.",
+    input_schema: {
+      type: "object",
+      properties: {
+        to: { type: "string", description: "Recipient email address" },
+        subject: { type: "string" },
+        body: { type: "string", description: "Plain-text body" },
+      },
+      required: ["to", "subject"],
     },
   },
 ];
@@ -222,16 +251,23 @@ type ClientMessage = {
   content: string | ClientBlock[];
 };
 
-function systemPrompt(state: unknown, now: string, tz: string, outlookConnected: boolean) {
-  return `You are JARVIS, the assistant built into Andrew's personal dashboard. You manage his recurring schedule, medications, training plan, and countdowns, and you can read and write his Outlook work calendar.
+function systemPrompt(
+  state: unknown,
+  now: string,
+  tz: string,
+  outlookConnected: boolean,
+  gmailConnected: boolean,
+) {
+  return `You are JARVIS, the assistant built into Andrew's personal dashboard. You manage his recurring schedule, medications, training plan, and countdowns; you can read/write his Outlook calendar; and you can read/send Gmail.
 
 The current date and time on his device is ${now} (${tz}). Resolve relative dates and times against that, never against your own assumptions.
 
-Two different things live side by side, and confusing them is the most common mistake:
-- The **schedule** is a set of weekly recurring items with a time and a list of weekdays. It has no dates.
-- **Outlook** holds dated appointments. ${outlookConnected ? "It is connected." : "It is NOT connected yet, so the Outlook tools will fail — say so rather than pretending otherwise."}
+Keep these separate:
+- The **schedule** is weekly recurring items with a time and weekdays — no dates.
+- **Outlook** holds dated calendar appointments. ${outlookConnected ? "It is connected." : "It is NOT connected yet — say so rather than pretending."}
+- **Gmail** is email. ${gmailConnected ? "It is connected." : "It is NOT connected yet — say so rather than pretending."}
 
-When he asks for something on a specific date, that is an Outlook event. When he describes a routine ("every weekday", "on Mondays"), that is a schedule item.
+When he asks for something on a specific date, that is an Outlook event. When he describes a routine ("every weekday", "on Mondays"), that is a schedule item. Inbox / email questions use Gmail tools.
 
 His current dashboard state is below. Use the ids from it when updating or deleting anything.
 
@@ -241,7 +277,7 @@ ${JSON.stringify(state, null, 1)}
 
 Make the change he asks for, then confirm it in one short sentence — this is spoken aloud, so keep it brief and natural, and don't read back ids or JSON. Voice: calm butler, lightly dry — never chipper, never verbose.
 
-Before any destructive action (remove_event, remove_med, remove_countdown) or writing to the real Outlook calendar (create_outlook_event), confirm once in plain language and wait for a yes — unless he already said "delete", "remove", "book it", or similar. Soft edits (move a time, log a dose, mark a workout) can proceed immediately.
+Before any destructive action (remove_event, remove_med, remove_countdown), writing to Outlook (create_outlook_event), or sending email (send_gmail), confirm once in plain language and wait for a yes — unless he already said "delete", "remove", "book it", "send it", or similar. Soft edits (move a time, log a dose, mark a workout) can proceed immediately.
 
 If a request is ambiguous in a way that changes what you'd do, ask instead of guessing. If he's only asking a question, answer it without calling any tools.`;
 }
@@ -360,6 +396,7 @@ export async function POST(request: Request) {
     now?: string;
     tz?: string;
     outlookConnected?: boolean;
+    gmailConnected?: boolean;
   };
   try {
     body = await request.json();
@@ -367,7 +404,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Malformed request body." }, { status: 400 });
   }
 
-  const { messages, state, now, tz, outlookConnected } = body;
+  const { messages, state, now, tz, outlookConnected, gmailConnected } = body;
   if (!Array.isArray(messages) || messages.length === 0) {
     return Response.json({ error: "messages is required." }, { status: 400 });
   }
@@ -385,6 +422,7 @@ export async function POST(request: Request) {
             now ?? new Date().toISOString(),
             tz ?? "unknown timezone",
             Boolean(outlookConnected),
+            Boolean(gmailConnected),
           ),
         },
         ...toOpenAIMessages(messages),
