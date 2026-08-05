@@ -1,6 +1,9 @@
-# JARVIS — connect Outlook calendar + Gmail (Chilets only)
+# JARVIS — connect MidValley Outlook calendar + Chilets Gmail
 
-No MidValley accounts, tenants, or projects. Use personal Microsoft + `chiletsgetfit@gmail.com`.
+- **Outlook calendar** → MidValley Microsoft 365 (your work calendar)
+- **Gmail** → chiletsgetfit@gmail.com (separate Google project)
+
+Chilets GitHub / Vercel stay Chilets-only. Outlook tokens never leave your browser.
 
 Redirect URI for both providers (copy exactly):
 
@@ -12,19 +15,22 @@ Also add `http://localhost:3100/jarvis` if you test locally.
 
 ---
 
-## Part A — Outlook calendar (Azure, ~5 min)
+## Part A — MidValley Outlook calendar (Azure, ~5 min)
 
-1. Sign in to [portal.azure.com](https://portal.azure.com) with your **personal Microsoft** account (not MidValley).
+1. Sign in to [portal.azure.com](https://portal.azure.com) with your **MidValley** work account (`@midvalley.com`).
 2. **Microsoft Entra ID** → **App registrations** → **New registration**.
-3. Name: `JARVIS Chilets`
-4. Supported account types: **Accounts in any organizational directory and personal Microsoft accounts** (multitenant + personal).
-5. Redirect URI: platform **Single-page application (SPA)** → paste the redirect above.
-6. Register. Copy **Application (client) ID**.
-7. **API permissions** → **Microsoft Graph** → **Delegated** → add `Calendars.ReadWrite` (+ `offline_access` / `openid` / `profile` are usually included by the auth request).
+3. Name: `JARVIS Dashboard` (or similar).
+4. Supported account types: **Accounts in this organizational directory only** (MidValley only).
+5. Redirect URI: platform **Single-page application (SPA)** — *not* Web — paste the redirect above.
+6. Register. From **Overview**, copy:
+   - **Application (client) ID**
+   - **Directory (tenant) ID**
+7. **API permissions** → **Microsoft Graph** → **Delegated** → add `Calendars.ReadWrite`.  
+   If the tenant requires it, click **Grant admin consent** (or ask MidValley IT).
 8. In JARVIS: **CONFIG → OUTLOOK**
-   - CLIENT ID = that Application ID  
-   - TENANT = `common`  
-   - SAVE → **CONNECT OUTLOOK** → sign in with the Microsoft account whose calendar you want.
+   - CLIENT ID = Application (client) ID  
+   - TENANT = Directory (tenant) ID (not `common`)  
+   - SAVE → **CONNECT OUTLOOK** → sign in with your MidValley account.
 
 ---
 

@@ -456,9 +456,9 @@ input:focus{border-color:var(--cyan)}
     </div>
 
     <div class="pane" id="pane-outlook">
-      <div class="hint">Connects your Outlook / Microsoft calendar so JARVIS can read appointments and book new ones. Use a Chilets/personal Azure app registration (not MidValley). For personal Microsoft accounts, set TENANT to <b>common</b>. Sign-in is with Microsoft directly; tokens stay on this device.</div>
-      <div class="frow"><label>CLIENT ID</label><input type="text" id="f-ms-client" placeholder="Application (client) ID from Azure" style="flex:1"></div>
-      <div class="frow"><label>TENANT</label><input type="text" id="f-ms-tenant" placeholder="common  (or your Directory tenant ID)" style="flex:1"></div>
+      <div class="hint">Connects your <b>MidValley</b> Microsoft 365 calendar so JARVIS can read appointments and book new ones. Register a SPA app in the MidValley Entra tenant (or ask IT). Sign-in is with your MidValley Microsoft account; tokens stay on this device — nothing is stored on Chilets servers.</div>
+      <div class="frow"><label>CLIENT ID</label><input type="text" id="f-ms-client" placeholder="Application (client) ID from MidValley Azure" style="flex:1"></div>
+      <div class="frow"><label>TENANT</label><input type="text" id="f-ms-tenant" placeholder="MidValley Directory (tenant) ID" style="flex:1"></div>
       <div class="frow"><label>REDIRECT</label><input type="text" id="f-ms-redirect" readonly style="flex:1"></div>
       <div class="hint" style="margin-top:2px">Register that exact redirect URI in Azure under <b>Single-page application</b> — not Web, or sign-in will fail.</div>
       <div class="frow" style="margin-top:10px">
@@ -1151,13 +1151,12 @@ function b64url(bytes){
    personal Microsoft accounts and work/school; use a Chilets/personal app reg. */
 const MS_SCOPE = 'openid profile offline_access Calendars.ReadWrite';
 const msRedirect = oauthRedirect;
-let MS = store.get('jv_ms', { clientId:'', tenantId:'common', access:'', refresh:'', expires:0 });
-if(!MS.tenantId) MS.tenantId = 'common';
+let MS = store.get('jv_ms', { clientId:'', tenantId:'', access:'', refresh:'', expires:0 });
 let calToday = [];
 
 const msConfigured = () => !!(MS.clientId && MS.tenantId);
 const msConnected  = () => !!(msConfigured() && MS.refresh);
-const msAuthority  = () => 'https://login.microsoftonline.com/' + encodeURIComponent(MS.tenantId || 'common') + '/oauth2/v2.0';
+const msAuthority  = () => 'https://login.microsoftonline.com/' + encodeURIComponent(MS.tenantId) + '/oauth2/v2.0';
 
 function msPersist(){ store.set('jv_ms', MS); }
 function setMsStatus(txt){ const el = $('ms-status'); if(el) el.textContent = txt; }
