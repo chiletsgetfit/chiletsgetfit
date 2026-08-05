@@ -325,7 +325,7 @@ input:focus{border-color:var(--cyan)}
       <div id="greeting">GOOD EVENING</div>
       <div id="sysline">ALL SYSTEMS NOMINAL</div>
       <div id="sync-ind"></div>
-      <div id="build-ind">BUILD 2026.08.05-mobile3</div>
+      <div id="build-ind">BUILD 2026.08.05-vault</div>
     </div>
     <div class="reactor" id="reactor" title="Tap for spoken briefing">
       <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="core"></div>
@@ -462,13 +462,13 @@ input:focus{border-color:var(--cyan)}
     </div>
 
     <div class="pane" id="pane-sync">
-      <div class="hint">Live sync across all your devices, end to end encrypted. Your data is encrypted on this device with your sync code before it goes anywhere, so the server only ever stores ciphertext. Setup: create a free Supabase project, run the SQL from the guide, paste your Project URL and anon key here (or bake them into the file), then use the SAME sync code on every device. Treat the sync code like a password.</div>
+      <div class="hint">One sync code = your vault on any device. Schedule, meds, training, chat unlock, and Google/Outlook tokens are encrypted with that code before leaving the phone. Paste URL + anon key once (already baked in for you), turn SYNC on with the SAME code everywhere. Treat the sync code like a password.</div>
       <div class="frow"><label>PROJECT URL</label><input type="text" id="f-sb-url" placeholder="https://xxxx.supabase.co" style="flex:1"></div>
       <div class="frow"><label>ANON KEY</label><input type="text" id="f-sb-key" placeholder="eyJhbGciOi..." style="flex:1"></div>
       <div class="frow"><label>SYNC CODE</label><input type="text" id="f-sync-code" placeholder="Same code on every device" style="flex:1"><button class="btn ghost" id="btn-gen-code">GENERATE</button></div>
       <div class="frow"><button class="btn" id="btn-sync-save">ENABLE SYNC</button><button class="btn ghost" id="btn-sync-off">DISABLE</button><span id="sync-status" class="mono-label" style="margin-left:6px"></span></div>
       <hr class="sep">
-      <div class="hint">Chat unlock key (JARVIS_CHAT_KEY). Paste once per device if chat says locked.</div>
+      <div class="hint">Chat unlock (JARVIS_CHAT_KEY). Enter once on any device with SYNC on — it rides in the vault to your other devices.</div>
       <div class="frow"><label>CHAT KEY</label><input type="text" id="f-asst-key" autocomplete="off" spellcheck="false" placeholder="local-test-passphrase" style="flex:1"><button class="btn" id="btn-asst-key">SAVE KEY</button></div>
     </div>
 
@@ -487,7 +487,7 @@ input:focus{border-color:var(--cyan)}
     </div>
 
     <div class="pane" id="pane-gmail">
-      <div class="hint">One Google connect for <b>Calendar + Gmail</b> (chiletsgetfit@gmail.com). Add your MidValley calendar into Google Calendar, then JARVIS only needs this. Tokens stay on this device. Skip Outlook admin consent.</div>
+      <div class="hint">One Google connect for <b>Calendar + Gmail</b>. With SYNC on, tokens travel in your encrypted vault to other devices (still connect Google once first). Add MidValley into Google Calendar so JARVIS only needs this.</div>
       <div class="frow"><label>CLIENT ID</label><input type="text" id="f-gg-client" placeholder="Google OAuth Client ID (...apps.googleusercontent.com)" style="flex:1"></div>
       <div class="frow"><label>SECRET</label><input type="password" id="f-gg-secret" placeholder="Client secret (from Google Cloud)" style="flex:1"></div>
       <div class="frow"><label>REDIRECT</label><input type="text" id="f-gg-redirect" readonly style="flex:1"></div>
@@ -517,7 +517,7 @@ input:focus{border-color:var(--cyan)}
   <div id="asst-head">
     <h3>J.A.R.V.I.S</h3>
     <span id="asst-state">READY</span>
-    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.05-mobile3</span>
+    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.05-vault</span>
     <button id="asst-close">CLOSE ✕</button>
   </div>
   <div id="asst-log"></div>
@@ -1022,9 +1022,52 @@ async function deriveKeys(code){
   const idBits = await crypto.subtle.digest('SHA-256', _enc.encode('jarvis-id:'+code));
   rowId = Array.from(new Uint8Array(idBits)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
+function syncEnvelope(){
+  return {
+    v: 2,
+    state: S,
+    chatKey: (typeof asstKey === 'string' && asstKey && !/^gsk_/i.test(asstKey)) ? asstKey : '',
+    google: (typeof GG !== 'undefined') ? {
+      clientId: GG.clientId||'', secret: GG.secret||'', access: GG.access||'',
+      refresh: GG.refresh||'', expires: GG.expires||0, email: GG.email||''
+    } : null,
+    outlook: (typeof MS !== 'undefined') ? {
+      clientId: MS.clientId||'', tenantId: MS.tenantId||'', access: MS.access||'',
+      refresh: MS.refresh||'', expires: MS.expires||0
+    } : null
+  };
+}
+function applySyncedSecrets(remote){
+  if(!remote || remote.v !== 2) return;
+  if(remote.chatKey && typeof remote.chatKey === 'string' && !/^gsk_/i.test(remote.chatKey)){
+    asstKey = remote.chatKey;
+    store.set('jv_asstkey', asstKey);
+  }
+  if(remote.google && (remote.google.refresh || remote.google.access || remote.google.clientId)){
+    GG = {
+      clientId: remote.google.clientId || GG.clientId || '',
+      secret: remote.google.secret || GG.secret || '',
+      access: remote.google.access || '',
+      refresh: remote.google.refresh || '',
+      expires: remote.google.expires || 0,
+      email: remote.google.email || ''
+    };
+    store.set('jv_gg', GG);
+  }
+  if(remote.outlook && (remote.outlook.refresh || remote.outlook.access || remote.outlook.clientId)){
+    MS = {
+      clientId: remote.outlook.clientId || MS.clientId || '',
+      tenantId: remote.outlook.tenantId || MS.tenantId || '',
+      access: remote.outlook.access || '',
+      refresh: remote.outlook.refresh || '',
+      expires: remote.outlook.expires || 0
+    };
+    store.set('jv_ms', MS);
+  }
+}
 async function encryptState(){
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, cryptoKey, _enc.encode(JSON.stringify(S)));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, cryptoKey, _enc.encode(JSON.stringify(syncEnvelope())));
   return b64(iv)+'.'+b64(ct);
 }
 async function decryptState(payload){
@@ -1065,10 +1108,17 @@ async function pullState(){
     const row = rows[0];
     if(!lastRemoteTs || row.updated_at > lastRemoteTs){
       const remote = await decryptState(row.data);
-      S = { profile:remote.profile||S.profile, events:remote.events||[], meds:remote.meds||[],
-            medLog:remote.medLog||{}, plan:remote.plan||S.plan, woLog:remote.woLog||{}, counts:remote.counts||[] };
+      const state = (remote && remote.v === 2) ? (remote.state || {}) : remote;
+      S = { profile:state.profile||S.profile, events:state.events||[], meds:state.meds||[],
+            medLog:state.medLog||{}, plan:state.plan||S.plan, woLog:state.woLog||{}, counts:state.counts||[] };
+      applySyncedSecrets(remote);
       lastRemoteTs = row.updated_at;
       persistLocal(); renderAll();
+      if(typeof fillGmailPane === 'function') fillGmailPane();
+      if(typeof fillOutlookPane === 'function') fillOutlookPane();
+      if(typeof fillSyncPane === 'function') fillSyncPane();
+      if(typeof renderCalToday === 'function') renderCalToday();
+      else if(typeof renderOutlookToday === 'function') renderOutlookToday();
     }
     setSyncStatus('SYNCED '+new Date(row.updated_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).toUpperCase(), true);
   }catch(e){
@@ -1102,7 +1152,8 @@ $('btn-asst-key').onclick = async () => {
   btn.disabled = false; btn.textContent = 'SAVE KEY';
   if(!check.ok){ toast((check.error || 'KEY FAILED').toUpperCase()); return; }
   asstKey = v; store.set('jv_asstkey', v);
-  toast('CHAT UNLOCKED ON THIS DEVICE');
+  schedulePush();
+  toast('CHAT UNLOCKED · WILL SYNC TO YOUR OTHER DEVICES');
 };
 $('btn-gen-code').onclick = () => {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -1190,7 +1241,7 @@ const msConfigured = () => !!(MS.clientId && MS.tenantId);
 const msConnected  = () => !!(msConfigured() && MS.refresh);
 const msAuthority  = () => 'https://login.microsoftonline.com/' + encodeURIComponent(MS.tenantId) + '/oauth2/v2.0';
 
-function msPersist(){ store.set('jv_ms', MS); }
+function msPersist(){ store.set('jv_ms', MS); schedulePush(); }
 function setMsStatus(txt){ const el = $('ms-status'); if(el) el.textContent = txt; }
 
 async function msBeginAuth(){
@@ -1341,7 +1392,7 @@ let gcalToday = [];
 
 const ggConfigured = () => !!GG.clientId;
 const ggConnected  = () => !!(ggConfigured() && GG.refresh);
-function ggPersist(){ store.set('jv_gg', GG); }
+function ggPersist(){ store.set('jv_gg', GG); schedulePush(); }
 function setGgStatus(txt){ const el = $('gg-status'); if(el) el.textContent = txt; }
 function ggTokenBody(params){
   const body = { client_id: GG.clientId, ...params };
@@ -1860,8 +1911,11 @@ function promptForKey(){
       return;
     }
     asstKey = v; store.set('jv_asstkey', v);
+    schedulePush();
     row.remove();
-    asstSay('Unlocked. Standing by.');
+    asstSay(SYNC.enabled
+      ? 'Unlocked. SYNC will carry this to your other devices.'
+      : 'Unlocked. Turn SYNC on with your code so other devices get this automatically.');
     asstState('READY');
     const again = pendingAsk; pendingAsk = '';
     if(again) askJarvis(again);
