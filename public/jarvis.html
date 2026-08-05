@@ -1446,8 +1446,16 @@ async function runTool(name, input){
   }
 }
 
+let pendingAsk = '';
+
 async function askJarvis(text){
   if(asstBusy) return;
+  if(!asstKey){
+    pendingAsk = text;
+    asstSay(text, 'me');
+    promptForKey();
+    return;
+  }
   asstBusy = true;
   $('asst-send').disabled = true;
   asstSay(text, 'me');
@@ -1494,6 +1502,7 @@ async function askJarvis(text){
   }catch(e){
     const msg = String(e && e.message ? e.message : e);
     if(msg === 'UNLOCK'){
+      pendingAsk = text;
       chat = [];   /* the unanswered turn would poison the next request */
       promptForKey();
     } else {
@@ -1506,21 +1515,57 @@ async function askJarvis(text){
   }
 }
 
+async function verifyAsstKey(key){
+  const r = await fetch('/api/jarvis/chat', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'x-jarvis-key': key },
+    body: JSON.stringify({
+      messages:[{ role:'user', content:'Reply with exactly: unlocked' }],
+      state: asstStatePayload(),
+      now: new Date().toString(),
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+      outlookConnected: msConnected()
+    })
+  });
+  const j = await r.json().catch(()=>({}));
+  if(r.status === 401) return { ok:false, error:'Wrong access key.' };
+  if(!r.ok) return { ok:false, error: j.error || ('HTTP ' + r.status) };
+  return { ok:true };
+}
+
 function promptForKey(){
-  asstSay('This assistant is locked. Enter the access key to use it on this device.', 'err');
+  if($('asst-unlock-form')) return;
+  asstSay('This assistant is locked. Enter JARVIS_CHAT_KEY from your .env.local (not the Groq gsk_ key).', 'err');
   const row = document.createElement('form');
-  row.style.cssText = 'display:flex;gap:7px;align-self:stretch';
-  row.innerHTML = '<input type="password" placeholder="Access key" ' +
-    'style="flex:1;background:rgba(4,7,13,.6);border:1px solid var(--line);border-radius:7px;' +
+  row.id = 'asst-unlock-form';
+  row.style.cssText = 'display:flex;gap:7px;align-self:stretch;flex-wrap:wrap';
+  row.innerHTML = '<input type="text" autocomplete="off" spellcheck="false" placeholder="JARVIS_CHAT_KEY value" ' +
+    'style="flex:1;min-width:180px;background:rgba(4,7,13,.6);border:1px solid var(--line);border-radius:7px;' +
     'color:var(--ink);padding:8px 10px;font:inherit;font-size:12.5px">' +
     '<button class="btn" type="submit">UNLOCK</button>';
-  row.onsubmit = e => {
+  row.onsubmit = async e => {
     e.preventDefault();
-    const v = row.querySelector('input').value.trim();
+    const input = row.querySelector('input');
+    const btn = row.querySelector('button');
+    let v = (input.value || '').trim();
+    // tolerate pasting the whole env line
+    if(/^JARVIS_CHAT_KEY=/i.test(v)) v = v.replace(/^JARVIS_CHAT_KEY=/i,'').trim();
+    if(/^["']/.test(v) && /["']$/.test(v)) v = v.slice(1,-1).trim();
     if(!v) return;
+    btn.disabled = true; btn.textContent = 'CHECKING…'; asstState('UNLOCKING…');
+    const check = await verifyAsstKey(v);
+    if(!check.ok){
+      btn.disabled = false; btn.textContent = 'UNLOCK'; asstState('READY');
+      asstSay(check.error + ' Use the JARVIS_CHAT_KEY value only.', 'err');
+      input.select();
+      return;
+    }
     asstKey = v; store.set('jv_asstkey', v);
     row.remove();
-    asstSay('Key saved on this device. Try that again.');
+    asstSay('Unlocked. Standing by.');
+    asstState('READY');
+    const again = pendingAsk; pendingAsk = '';
+    if(again) askJarvis(again);
   };
   $('asst-log').appendChild(row);
   $('asst-log').scrollTop = $('asst-log').scrollHeight;
