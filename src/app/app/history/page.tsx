@@ -20,12 +20,20 @@ export default async function WorkoutHistoryPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
-      <Link
-        href="/app"
-        className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 hover:text-gold-400"
-      >
-        ← Today
-      </Link>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <Link
+          href="/app"
+          className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 hover:text-gold-400"
+        >
+          ← Today
+        </Link>
+        <Link
+          href="/app/progress"
+          className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-400 hover:text-gold-300"
+        >
+          Progress →
+        </Link>
+      </div>
       <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">
         Workout history
       </h1>

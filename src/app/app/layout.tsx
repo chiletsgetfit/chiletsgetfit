@@ -34,6 +34,18 @@ export default async function AppLayout({
             <img src="/brand/logo.svg" alt="ChiletsGetFit" className="h-[72px] w-auto" />
           </Link>
           <nav className="flex items-center gap-4">
+            <Link
+              href="/app/progress"
+              className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300 hover:text-gold-400"
+            >
+              Progress
+            </Link>
+            <Link
+              href="/app/history"
+              className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300 hover:text-gold-400"
+            >
+              History
+            </Link>
             <a
               href="/resources/index.html"
               className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300 hover:text-gold-400"

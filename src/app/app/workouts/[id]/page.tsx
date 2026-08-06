@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { setBadge, setVolume } from "@/lib/progress";
 import {
   clearSet,
   completeWorkout,
@@ -94,6 +95,8 @@ export default async function ClientWorkoutPage({
     string,
     { date: string; sets: LastSet[] }
   >();
+  const prWeightByExercise = new Map<string, number>();
+  const prVolumeByExercise = new Map<string, number>();
 
   if (exerciseIds.length > 0) {
     const { data: priorSets } = await supabase
@@ -107,7 +110,7 @@ export default async function ClientWorkoutPage({
       .not("workout_exercises.workouts.completed_at", "is", null);
 
     // Group rows by (exercise_id, workout_id), then pick the most recent
-    // workout per exercise.
+    // workout per exercise. Also track all-time PRs for badges.
     const grouped = new Map<
       string,
       Map<string, { date: string; sets: LastSet[] }>
@@ -137,6 +140,19 @@ export default async function ClientWorkoutPage({
         weight: row.weight,
         notes: row.notes,
       });
+      if (row.weight != null) {
+        prWeightByExercise.set(
+          exId,
+          Math.max(prWeightByExercise.get(exId) ?? 0, row.weight),
+        );
+      }
+      const vol = setVolume(row.weight, row.reps);
+      if (vol > 0) {
+        prVolumeByExercise.set(
+          exId,
+          Math.max(prVolumeByExercise.get(exId) ?? 0, vol),
+        );
+      }
     }
 
     for (const [exId, byWorkout] of grouped) {
@@ -153,12 +169,20 @@ export default async function ClientWorkoutPage({
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
-      <Link
-        href="/app"
-        className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 hover:text-gold-400"
-      >
-        ← Back
-      </Link>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <Link
+          href="/app"
+          className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 hover:text-gold-400"
+        >
+          ← Back
+        </Link>
+        <Link
+          href="/app/progress"
+          className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 hover:text-gold-400"
+        >
+          Progress →
+        </Link>
+      </div>
 
       <header className="mt-4">
         <WorkoutTitle workoutId={id} defaultName={workout.name} />
@@ -296,11 +320,23 @@ export default async function ClientWorkoutPage({
                   const lastSet = last?.sets.find(
                     (s) => s.set_number === setNumber
                   );
+                  const badge =
+                    log && ex
+                      ? setBadge({
+                          weight: log.weight,
+                          reps: log.reps,
+                          lastWeight: lastSet?.weight ?? null,
+                          lastReps: lastSet?.reps ?? null,
+                          prWeight: prWeightByExercise.get(ex.id) ?? 0,
+                          prVolume: prVolumeByExercise.get(ex.id) ?? 0,
+                        })
+                      : null;
                   return log ? (
                     <LoggedSetRow
                       key={setNumber}
                       log={log}
                       workoutId={id}
+                      badge={badge}
                     />
                   ) : (
                     <EmptySetRow
@@ -364,9 +400,11 @@ export default async function ClientWorkoutPage({
 function LoggedSetRow({
   log,
   workoutId,
+  badge,
 }: {
   log: SetLog;
   workoutId: string;
+  badge?: "pr" | "beat-last" | null;
 }) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-emerald-900/50 bg-emerald-950/20 px-4 py-3">
@@ -392,6 +430,16 @@ function LoggedSetRow({
           )}
           {log.weight === null && log.reps === null && (
             <span className="text-zinc-500">logged</span>
+          )}
+          {badge === "pr" && (
+            <span className="ml-2 rounded-full border border-gold-500/50 bg-gold-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-gold-400">
+              PR
+            </span>
+          )}
+          {badge === "beat-last" && (
+            <span className="ml-2 rounded-full border border-emerald-700/50 bg-emerald-950/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
+              Beat last
+            </span>
           )}
         </p>
         {log.notes && (

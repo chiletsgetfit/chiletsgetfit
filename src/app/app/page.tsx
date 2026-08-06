@@ -72,12 +72,18 @@ export default async function ClientDashboard() {
           <CustomWorkoutCard />
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6 flex flex-wrap gap-4">
+          <Link
+            href="/app/progress"
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-400 hover:text-gold-300"
+          >
+            Progress →
+          </Link>
           <Link
             href="/app/history"
             className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 hover:text-gold-400"
           >
-            See past workouts →
+            History →
           </Link>
         </div>
 
@@ -276,12 +282,18 @@ export default async function ClientDashboard() {
         <CustomWorkoutCard />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 flex flex-wrap gap-4">
+        <Link
+          href="/app/progress"
+          className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-400 hover:text-gold-300"
+        >
+          Progress →
+        </Link>
         <Link
           href="/app/history"
           className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 hover:text-gold-400"
         >
-          See past workouts →
+          History →
         </Link>
       </div>
 

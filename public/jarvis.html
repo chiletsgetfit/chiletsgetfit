@@ -333,7 +333,7 @@ input:focus{border-color:var(--cyan)}
       <div id="greeting">GOOD EVENING</div>
       <div id="sysline">ALL SYSTEMS NOMINAL</div>
       <div id="sync-ind"></div>
-      <div id="build-ind">BUILD 2026.08.06-portal</div>
+      <div id="build-ind">BUILD 2026.08.06-progress</div>
     </div>
     <div class="reactor" id="reactor" title="Tap for spoken briefing">
       <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="core"></div>
@@ -366,14 +366,14 @@ input:focus{border-color:var(--cyan)}
       <div class="panel-head">
         <span class="tag">03</span><h2>TRAINING</h2>
         <span class="head-info" id="workout-streak-head"></span>
-        <a class="head-link" href="/app" id="link-workout-portal-head">PORTAL →</a>
+        <a class="head-link" href="/app/progress" id="link-workout-portal-head">PROGRESS →</a>
       </div>
-      <div class="wo-today" id="wo-today-card" title="Open workout portal">
+      <div class="wo-today" id="wo-today-card" title="Open workout progress">
         <div class="w-name" id="workout-today">Loading</div>
         <div class="w-sub" id="workout-plan-desc"></div>
         <div class="wo-actions">
           <button type="button" id="btn-workout-done">MARK COMPLETE</button>
-          <a href="/app" id="btn-workout-portal">OPEN PORTAL</a>
+          <a href="/app/progress" id="btn-workout-portal">PROGRESS</a>
         </div>
       </div>
       <div id="week-strip"></div>
@@ -537,7 +537,7 @@ input:focus{border-color:var(--cyan)}
   <div id="asst-head">
     <h3>J.A.R.V.I.S</h3>
     <span id="asst-state">READY</span>
-    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.06-portal</span>
+    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.06-progress</span>
     <button id="asst-close">CLOSE ✕</button>
   </div>
   <div id="asst-log"></div>
@@ -831,7 +831,7 @@ function renderWorkout(){
   }
   $('workout-streak-head').textContent = 'STREAK ' + streak + (streak===1?' SESSION':' SESSIONS');
 }
-const WORKOUT_PORTAL = '/app';
+const WORKOUT_PORTAL = '/app/progress';
 (function bindWorkoutPortal(){
   const card = $('wo-today-card');
   if(!card || card._portalBound) return;
