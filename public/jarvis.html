@@ -135,6 +135,8 @@ header.panel{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
 .ev.now{border-color:var(--line2);border-left-color:var(--cyan);background:var(--cyan-soft);box-shadow:inset 0 0 24px rgba(79,209,255,.06)}
 .ev.now .badge{font-size:9px;letter-spacing:.2em;color:#04121d;background:var(--cyan);border-radius:4px;padding:3px 7px;font-weight:700}
 .ev.next .badge{font-size:9px;letter-spacing:.2em;color:var(--cyan);border:1px solid var(--line2);border-radius:4px;padding:2px 6px}
+.ev.gcal{border-left-color:rgba(234,67,53,.55)}
+.ev.gcal .src{font-size:9px;letter-spacing:.16em;color:var(--ink3);margin-left:6px}
 .empty{color:var(--ink3);font-size:12px;letter-spacing:.08em;padding:16px 4px;text-align:center}
 #day-progress{height:3px;background:var(--line);border-radius:3px;margin-top:12px;overflow:hidden}
 #day-progress i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan-dim,#1a5f8a),var(--cyan));box-shadow:0 0 10px var(--cyan-glow)}
@@ -325,7 +327,7 @@ input:focus{border-color:var(--cyan)}
       <div id="greeting">GOOD EVENING</div>
       <div id="sysline">ALL SYSTEMS NOMINAL</div>
       <div id="sync-ind"></div>
-      <div id="build-ind">BUILD 2026.08.06-ggfix</div>
+      <div id="build-ind">BUILD 2026.08.06-gcalui</div>
     </div>
     <div class="reactor" id="reactor" title="Tap for spoken briefing">
       <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="core"></div>
@@ -341,10 +343,6 @@ input:focus{border-color:var(--cyan)}
     <section class="panel">
       <div class="panel-head"><span class="tag">01</span><h2>SCHEDULE</h2><span class="head-info" id="next-count"></span></div>
       <div id="schedule-list"></div>
-      <div id="outlook-today" class="hide">
-        <div class="ol-head" id="cal-today-label">CALENDAR · TODAY</div>
-        <div id="outlook-list"></div>
-      </div>
       <div id="day-progress"><i></i></div>
     </section>
 
@@ -526,7 +524,7 @@ input:focus{border-color:var(--cyan)}
   <div id="asst-head">
     <h3>J.A.R.V.I.S</h3>
     <span id="asst-state">READY</span>
-    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.06-ggfix</span>
+    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.06-gcalui</span>
     <button id="asst-close">CLOSE ✕</button>
   </div>
   <div id="asst-log"></div>
@@ -619,28 +617,81 @@ function todaysEvents(){
   const dow = new Date().getDay();
   return S.events.filter(e => e.days.includes(dow)).sort((a,b)=>toMins(a.time)-toMins(b.time));
 }
+function calEventMins(e){
+  if(!e || e.allDay || !e.start) return -1;
+  const d = new Date(e.start);
+  if(Number.isNaN(d.getTime())) return -1;
+  return d.getHours()*60 + d.getMinutes();
+}
+function calEventEndMins(e){
+  if(!e || e.allDay || !e.end) return null;
+  const d = new Date(e.end);
+  if(Number.isNaN(d.getTime())) return null;
+  return d.getHours()*60 + d.getMinutes();
+}
+function scheduleDayItems(){
+  const items = todaysEvents().map(e => ({
+    kind:'routine', title:e.title, time:e.time, mins:toMins(e.time), endMins:null, allDay:false
+  }));
+  const calRows = ggConnected() ? gcalToday : (msConnected() ? calToday : []);
+  calRows.forEach(e => {
+    const mins = calEventMins(e);
+    let time = '00:00';
+    if(!e.allDay && mins >= 0){
+      time = String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');
+    }
+    items.push({
+      kind: ggConnected() ? 'gcal' : 'outlook',
+      title: (e.subject || '(no subject)') + (e.location ? ' · ' + e.location : ''),
+      time, mins: e.allDay ? -1 : mins,
+      endMins: calEventEndMins(e),
+      allDay: !!e.allDay
+    });
+  });
+  items.sort((a,b) => a.mins - b.mins);
+  return items;
+}
 function renderSchedule(){
-  const list = $('schedule-list'); const evs = todaysEvents(); const now = minsNow();
+  const list = $('schedule-list');
+  const items = scheduleDayItems();
+  const now = minsNow();
   list.innerHTML = '';
-  if(!evs.length){ list.innerHTML = '<div class="empty">NO SCHEDULED EVENTS TODAY</div>'; $('next-count').textContent=''; return; }
+  if(!items.length){
+    list.innerHTML = '<div class="empty">'+(ggConnected()
+      ? 'NO GOOGLE EVENTS OR ROUTINE BLOCKS TODAY'
+      : 'NO SCHEDULED EVENTS TODAY')+'</div>';
+    $('next-count').textContent = ggConnected() ? 'GOOGLE ON' : '';
+    return;
+  }
   let next = null;
-  evs.forEach((e,i)=>{
-    const m = toMins(e.time);
-    const end = (i+1<evs.length) ? toMins(evs[i+1].time) : m+60;
-    const isNow = now>=m && now<end;
-    const isPast = end<=now && !isNow;
-    if(!next && m>now) next = e;
+  items.forEach((e,i)=>{
+    const m = e.mins < 0 ? 0 : e.mins;
+    const end = e.endMins != null ? e.endMins
+      : (i+1<items.length && items[i+1].mins >= 0 ? items[i+1].mins : m+60);
+    const isNow = !e.allDay && now>=m && now<end;
+    const isPast = !e.allDay && end<=now && !isNow;
+    if(!next && !e.allDay && m>now) next = e;
     const div = document.createElement('div');
-    div.className = 'ev' + (isNow?' now':'') + (isPast?' past':'') + (next===e?' next':'');
-    div.innerHTML = '<span class="t">'+fmt12(e.time)+'</span><span class="n"></span>' +
-      (isNow?'<span class="badge">NOW</span>': next===e?'<span class="badge">NEXT</span>':'');
+    div.className = 'ev'
+      + (e.kind==='gcal'||e.kind==='outlook' ? ' gcal' : '')
+      + (isNow?' now':'') + (isPast?' past':'') + (next===e?' next':'');
+    const tlabel = e.allDay ? 'ALL DAY' : fmt12(e.time);
+    div.innerHTML = '<span class="t"></span><span class="n"></span>'
+      + (e.kind==='gcal'?'<span class="src">GCAL</span>':'')
+      + (e.kind==='outlook'?'<span class="src">OUTLOOK</span>':'')
+      + (isNow?'<span class="badge">NOW</span>': next===e?'<span class="badge">NEXT</span>':'');
+    div.querySelector('.t').textContent = tlabel;
     div.querySelector('.n').textContent = e.title;
     list.appendChild(div);
   });
+  const gCount = items.filter(x => x.kind==='gcal' || x.kind==='outlook').length;
   if(next){
-    const diff = toMins(next.time)-now; const hh = Math.floor(diff/60), mm = diff%60;
-    $('next-count').textContent = 'NEXT IN ' + (hh? hh+'H ':'') + mm + 'M';
-  } else $('next-count').textContent = 'DAY CLEAR';
+    const diff = next.mins-now; const hh = Math.floor(diff/60), mm = diff%60;
+    $('next-count').textContent = 'NEXT IN ' + (hh? hh+'H ':'') + mm + 'M'
+      + (gCount ? ' · '+gCount+' CAL' : '');
+  } else {
+    $('next-count').textContent = gCount ? (gCount+' CAL TODAY') : 'DAY CLEAR';
+  }
 }
 
 /* ============ meds ============ */
@@ -1750,37 +1801,23 @@ async function gcalCreate(ev){
   return { id: j.id, htmlLink: j.htmlLink };
 }
 
-function renderCalToday(){
-  const wrap = $('outlook-today'), list = $('outlook-list'), label = $('cal-today-label');
-  if(!wrap || !list) return;
-  const source = ggConnected() ? 'GOOGLE' : (msConnected() ? 'OUTLOOK' : '');
-  const rows = ggConnected() ? gcalToday : calToday;
-  if(label) label.textContent = source ? (source + ' · TODAY') : 'CALENDAR · TODAY';
-  if(!rows.length){ wrap.classList.add('hide'); list.innerHTML=''; return; }
-  wrap.classList.remove('hide');
-  list.innerHTML = '';
-  rows.forEach(e => {
-    const row = document.createElement('div'); row.className = 'ol-ev';
-    let tlabel = 'ALL DAY';
-    if(!e.allDay && e.start){
-      const d = new Date(e.start);
-      if(!Number.isNaN(d.getTime())) tlabel = d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}).toUpperCase();
-    }
-    row.innerHTML = '<span class="t"></span><span class="s"></span>';
-    row.querySelector('.t').textContent = tlabel;
-    row.querySelector('.s').textContent = e.subject + (e.location ? ' · ' + e.location : '');
-    list.appendChild(row);
-  });
-}
+function renderCalToday(){ renderSchedule(); }
 
 async function refreshGoogleToday(){
-  if(!ggConnected()){ gcalToday = []; renderCalToday(); return; }
+  if(!ggConnected()){ gcalToday = []; renderSchedule(); return; }
   try{
     const start = new Date(); start.setHours(0,0,0,0);
     const end = new Date(start); end.setDate(end.getDate()+1);
     gcalToday = await gcalRange(start.toISOString(), end.toISOString());
-    renderCalToday();
-  }catch(e){ setGgStatus(String(e.message).slice(0,90)); }
+    renderSchedule();
+  }catch(e){
+    const msg = String(e && e.message ? e.message : e).slice(0,90);
+    setGgStatus(msg);
+    const list = $('schedule-list');
+    if(list && !(gcalToday&&gcalToday.length)){
+      list.innerHTML = '<div class="empty">GOOGLE CALENDAR ERROR · '+msg+'</div>';
+    }
+  }
 }
 
 function gmailHeader(headers, name){
