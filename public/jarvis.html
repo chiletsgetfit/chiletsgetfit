@@ -327,7 +327,7 @@ input:focus{border-color:var(--cyan)}
       <div id="greeting">GOOD EVENING</div>
       <div id="sysline">ALL SYSTEMS NOMINAL</div>
       <div id="sync-ind"></div>
-      <div id="build-ind">BUILD 2026.08.06-gcalui</div>
+      <div id="build-ind">BUILD 2026.08.06-nostock</div>
     </div>
     <div class="reactor" id="reactor" title="Tap for spoken briefing">
       <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="core"></div>
@@ -428,12 +428,12 @@ input:focus{border-color:var(--cyan)}
     </div>
 
     <div class="pane" id="pane-schedule">
-      <div class="hint">Recurring weekly events. Pick the days each one repeats on. One-off items: pick a single day and delete it later, or just use countdowns for big dates.</div>
+      <div class="hint">Recurring weekly routine blocks (separate from Google Calendar). One-offs belong on Google. Use CLEAR ALL to wipe demo/stock blocks.</div>
       <div class="list-edit" id="s-ev-list"></div>
       <hr class="sep">
       <div class="frow"><input type="text" id="f-ev-title" placeholder="Event title" style="flex:2"><input type="time" id="f-ev-time" value="09:00"></div>
       <div class="frow"><div class="daychecks" id="f-ev-days"></div></div>
-      <div class="frow"><button class="btn" id="btn-ev-add">+ ADD EVENT</button></div>
+      <div class="frow"><button class="btn" id="btn-ev-add">+ ADD EVENT</button><button class="btn ghost" id="btn-ev-clear">CLEAR ALL ROUTINE</button></div>
     </div>
 
     <div class="pane" id="pane-meds">
@@ -524,7 +524,7 @@ input:focus{border-color:var(--cyan)}
   <div id="asst-head">
     <h3>J.A.R.V.I.S</h3>
     <span id="asst-state">READY</span>
-    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.06-gcalui</span>
+    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.06-nostock</span>
     <button id="asst-close">CLOSE ✕</button>
   </div>
   <div id="asst-log"></div>
@@ -553,22 +553,22 @@ const uid = () => 'id' + Math.random().toString(36).slice(2,9);
 
 const DEFAULTS = {
   profile:{ name:'ANDREW', unit:'F', lat:34.0522, lon:-118.2437, locName:'LOS ANGELES' },
-  events:[
-    { id:uid(), title:'Deep work block', time:'09:00', days:[1,2,3,4,5] },
-    { id:uid(), title:'Team standup', time:'10:30', days:[1,2,3,4] },
-    { id:uid(), title:'Lunch + walk', time:'12:30', days:[1,2,3,4,5] },
-    { id:uid(), title:'Wind down, screens off', time:'21:30', days:[0,1,2,3,4,5,6] }
-  ],
-  meds:[
-    { id:uid(), name:'Vitamin D3', dose:'2000 IU', times:['08:00'], refill:'' },
-    { id:uid(), name:'Omega-3', dose:'1000mg', times:['08:00','20:00'], refill:'' }
-  ],
+  events:[],
+  meds:[],
   plan:{
     0:{name:'Rest / mobility', min:20}, 1:{name:'Push day', min:50}, 2:{name:'Zone 2 run', min:40},
     3:{name:'Pull day', min:50}, 4:{name:'Intervals', min:30}, 5:{name:'Leg day', min:55}, 6:{name:'Long hike', min:90}
   },
-  counts:[ { id:uid(), title:'Next vacation', date:'2026-12-18' } ]
+  counts:[]
 };
+/* Old demo seed titles — strip wherever they still linger (local or vault). */
+const STOCK_EVENT_TITLES = new Set([
+  'deep work block',
+  'team standup',
+  'lunch + walk',
+  'wind down, screens off'
+]);
+const isStockEvent = e => STOCK_EVENT_TITLES.has(String(e && e.title || '').trim().toLowerCase());
 
 let S = {
   profile: store.get('jv_profile', DEFAULTS.profile),
@@ -584,6 +584,16 @@ const persistLocal = () => {
   store.set('jv_medlog',S.medLog); store.set('jv_plan',S.plan); store.set('jv_wolog',S.woLog); store.set('jv_counts',S.counts);
 };
 const save = () => { persistLocal(); schedulePush(); };
+function stripStockEvents(){
+  const before = (S.events || []).length;
+  S.events = (S.events || []).filter(e => !isStockEvent(e));
+  if(S.events.length !== before){
+    persistLocal();
+    return true;
+  }
+  return false;
+}
+stripStockEvents();
 
 /* ============ helpers ============ */
 const $ = id => document.getElementById(id);
@@ -969,6 +979,15 @@ $('btn-ev-add').onclick = () => {
   S.events.push({id:uid(), title, time, days}); save();
   $('f-ev-title').value = ''; renderEvEdit(); renderSchedule(); toast('EVENT ADDED');
 };
+$('btn-ev-clear').onclick = async () => {
+  if(!S.events.length){ toast('ROUTINE ALREADY EMPTY'); return; }
+  if(!confirm('Clear all recurring routine blocks? Google Calendar events stay.')) return;
+  S.events = [];
+  save();
+  if(SYNC.enabled && cryptoKey) await pushState({ preferLocal:true });
+  renderEvEdit(); renderSchedule();
+  toast('ROUTINE CLEARED');
+};
 
 /* meds editing */
 function renderMedEdit(){
@@ -1260,6 +1279,7 @@ function applyRemoteState(remote, { force=false } = {}){
   }
   S = { profile:state.profile||S.profile, events:state.events||[], meds:state.meds||[],
         medLog:state.medLog||{}, plan:state.plan||S.plan, woLog:state.woLog||{}, counts:state.counts||[] };
+  stripStockEvents();
   persistLocal();
   return true;
 }
@@ -1349,15 +1369,17 @@ async function initSync(){
   try{
     await deriveKeys(SYNC.code);
     const result = await pullState({ force:true });
-    if(result === 'local-ahead'){
+    const stripped = stripStockEvents();
+    if(stripped || result === 'local-ahead' || result === false){
       await pushState({ preferLocal:true });
-      setSyncStatus('AUTO · UPLOADED THIS DEVICE', true);
-    } else if(result === false){
-      await pushState({ preferLocal:true });
+      if(stripped) setSyncStatus('AUTO · REMOVED DEMO BLOCKS', true);
+      else if(result === 'local-ahead') setSyncStatus('AUTO · UPLOADED THIS DEVICE', true);
     } else {
       const row = await fetchRemoteRow();
       if(!row) await pushState({ preferLocal:true });
     }
+    renderSchedule();
+    if(typeof renderEvEdit === 'function') renderEvEdit();
     updateVaultHint();
   }catch(e){ setSyncStatus('SYNC INIT FAILED', false); }
 }
