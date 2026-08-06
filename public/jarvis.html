@@ -325,7 +325,7 @@ input:focus{border-color:var(--cyan)}
       <div id="greeting">GOOD EVENING</div>
       <div id="sysline">ALL SYSTEMS NOMINAL</div>
       <div id="sync-ind"></div>
-      <div id="build-ind">BUILD 2026.08.05-vault</div>
+      <div id="build-ind">BUILD 2026.08.06-anydevice</div>
     </div>
     <div class="reactor" id="reactor" title="Tap for spoken briefing">
       <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="core"></div>
@@ -467,9 +467,7 @@ input:focus{border-color:var(--cyan)}
       <div class="frow"><label>ANON KEY</label><input type="text" id="f-sb-key" placeholder="eyJhbGciOi..." style="flex:1"></div>
       <div class="frow"><label>SYNC CODE</label><input type="text" id="f-sync-code" placeholder="Same code on every device" style="flex:1"><button class="btn ghost" id="btn-gen-code">GENERATE</button></div>
       <div class="frow"><button class="btn" id="btn-sync-save">ENABLE SYNC</button><button class="btn ghost" id="btn-sync-off">DISABLE</button><span id="sync-status" class="mono-label" style="margin-left:6px"></span></div>
-      <hr class="sep">
-      <div class="hint">Chat unlock (JARVIS_CHAT_KEY). Enter once on any device with SYNC on — it rides in the vault to your other devices.</div>
-      <div class="frow"><label>CHAT KEY</label><input type="text" id="f-asst-key" autocomplete="off" spellcheck="false" placeholder="local-test-passphrase" style="flex:1"><button class="btn" id="btn-asst-key">SAVE KEY</button></div>
+      <div class="hint" id="vault-ready" style="margin-top:8px"></div>
     </div>
 
     <div class="pane" id="pane-outlook">
@@ -517,7 +515,7 @@ input:focus{border-color:var(--cyan)}
   <div id="asst-head">
     <h3>J.A.R.V.I.S</h3>
     <span id="asst-state">READY</span>
-    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.05-vault</span>
+    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.06-anydevice</span>
     <button id="asst-close">CLOSE ✕</button>
   </div>
   <div id="asst-log"></div>
@@ -1004,6 +1002,8 @@ const SYNC_DEFAULTS = {
   url: 'https://vdduggdtsmuccdtklloc.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkZHVnZ2R0c211Y2NkdGtsbG9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwODE4NzYsImV4cCI6MjA5MzY1Nzg3Nn0.5lFijuHlbJHu42yMVAcFaiziWlhJIpUNKccGyjm49dY'
 };
+/* Same value as Vercel JARVIS_CHAT_KEY — chat works on every device without a separate unlock step. */
+const BAKED_CHAT_KEY = 'local-test-passphrase';
 
 let SYNC = store.get('jv_sync', { url:'', key:'', code:'', enabled:false });
 if(!SYNC.url && SYNC_DEFAULTS.url) SYNC.url = SYNC_DEFAULTS.url;
@@ -1022,26 +1022,55 @@ async function deriveKeys(code){
   const idBits = await crypto.subtle.digest('SHA-256', _enc.encode('jarvis-id:'+code));
   rowId = Array.from(new Uint8Array(idBits)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
-function syncEnvelope(){
+function localGoogle(){
+  if(typeof GG === 'undefined') return null;
+  return {
+    clientId: GG.clientId||'', secret: GG.secret||'', access: GG.access||'',
+    refresh: GG.refresh||'', expires: GG.expires||0, email: GG.email||''
+  };
+}
+function localOutlook(){
+  if(typeof MS === 'undefined') return null;
+  return {
+    clientId: MS.clientId||'', tenantId: MS.tenantId||'', access: MS.access||'',
+    refresh: MS.refresh||'', expires: MS.expires||0
+  };
+}
+function pickOauth(a, b){
+  if(!a && !b) return null;
+  a = a || {}; b = b || {};
+  const preferA = !!(a.refresh || a.access);
+  const src = preferA ? a : ((b.refresh || b.access) ? b : a);
+  const other = preferA ? b : a;
+  return {
+    clientId: src.clientId || other.clientId || '',
+    secret: src.secret || other.secret || '',
+    tenantId: src.tenantId || other.tenantId || '',
+    access: src.access || other.access || '',
+    refresh: src.refresh || other.refresh || '',
+    expires: src.expires || other.expires || 0,
+    email: src.email || other.email || ''
+  };
+}
+function syncEnvelope(baseRemote){
+  const remote = (baseRemote && baseRemote.v === 2) ? baseRemote : null;
+  const localKey = (typeof asstKey === 'string' && asstKey && !/^gsk_/i.test(asstKey)) ? asstKey : '';
+  const chatKey = localKey || (remote && remote.chatKey) || BAKED_CHAT_KEY;
   return {
     v: 2,
     state: S,
-    chatKey: (typeof asstKey === 'string' && asstKey && !/^gsk_/i.test(asstKey)) ? asstKey : '',
-    google: (typeof GG !== 'undefined') ? {
-      clientId: GG.clientId||'', secret: GG.secret||'', access: GG.access||'',
-      refresh: GG.refresh||'', expires: GG.expires||0, email: GG.email||''
-    } : null,
-    outlook: (typeof MS !== 'undefined') ? {
-      clientId: MS.clientId||'', tenantId: MS.tenantId||'', access: MS.access||'',
-      refresh: MS.refresh||'', expires: MS.expires||0
-    } : null
+    chatKey,
+    google: pickOauth(localGoogle(), remote && remote.google),
+    outlook: pickOauth(localOutlook(), remote && remote.outlook)
   };
 }
 function applySyncedSecrets(remote){
-  if(!remote || remote.v !== 2) return;
+  const got = { chat:false, google:false, outlook:false };
+  if(!remote || remote.v !== 2) return got;
   if(remote.chatKey && typeof remote.chatKey === 'string' && !/^gsk_/i.test(remote.chatKey)){
     asstKey = remote.chatKey;
     store.set('jv_asstkey', asstKey);
+    got.chat = true;
   }
   if(remote.google && (remote.google.refresh || remote.google.access || remote.google.clientId)){
     GG = {
@@ -1053,6 +1082,7 @@ function applySyncedSecrets(remote){
       email: remote.google.email || ''
     };
     store.set('jv_gg', GG);
+    got.google = !!(GG.refresh || GG.access);
   }
   if(remote.outlook && (remote.outlook.refresh || remote.outlook.access || remote.outlook.clientId)){
     MS = {
@@ -1063,11 +1093,22 @@ function applySyncedSecrets(remote){
       expires: remote.outlook.expires || 0
     };
     store.set('jv_ms', MS);
+    got.outlook = !!(MS.refresh || MS.access);
   }
+  return got;
 }
-async function encryptState(){
+function updateVaultHint(got){
+  const el = $('vault-ready');
+  if(!el) return;
+  if(!SYNC.enabled){ el.textContent = 'SYNC OFF — enable with your code to pull this vault onto any device.'; return; }
+  const bits = ['CHAT READY'];
+  if((got && got.google) || (typeof ggConnected === 'function' && ggConnected())) bits.push('GOOGLE LINKED');
+  if((got && got.outlook) || (typeof msConnected === 'function' && msConnected())) bits.push('OUTLOOK LINKED');
+  el.textContent = 'VAULT: ' + bits.join(' · ');
+}
+async function encryptState(envelope){
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, cryptoKey, _enc.encode(JSON.stringify(syncEnvelope())));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, cryptoKey, _enc.encode(JSON.stringify(envelope || syncEnvelope())));
   return b64(iv)+'.'+b64(ct);
 }
 async function decryptState(payload){
@@ -1081,10 +1122,25 @@ function setSyncStatus(txt, ok){
   const ind = $('sync-ind');
   if(ind){ ind.textContent = SYNC.enabled ? '⇅ '+txt : ''; ind.className = ok===false ? 'err' : ''; }
 }
+async function fetchRemoteRow(){
+  const r = await fetch(SYNC.url+'/rest/v1/jarvis_state?id=eq.'+rowId+'&select=data,updated_at', { headers:syncHeaders() });
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  const rows = await r.json();
+  return rows[0] || null;
+}
 async function pushState(){
   if(!SYNC.enabled || !cryptoKey) return;
   try{
-    const data = await encryptState();
+    let remoteEnv = null;
+    try{
+      const existing = await fetchRemoteRow();
+      if(existing && existing.data) remoteEnv = await decryptState(existing.data);
+    }catch(e){}
+    const envelope = syncEnvelope(remoteEnv);
+    if(envelope.chatKey && (!asstKey || /^gsk_/i.test(asstKey))){
+      asstKey = envelope.chatKey; store.set('jv_asstkey', asstKey);
+    }
+    const data = await encryptState(envelope);
     const now = new Date().toISOString();
     const r = await fetch(SYNC.url+'/rest/v1/jarvis_state', {
       method:'POST',
@@ -1094,6 +1150,10 @@ async function pushState(){
     if(!r.ok) throw new Error('HTTP '+r.status);
     lastRemoteTs = now;
     setSyncStatus('SYNCED '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).toUpperCase(), true);
+    updateVaultHint({
+      google: !!(envelope.google && envelope.google.refresh),
+      outlook: !!(envelope.outlook && envelope.outlook.refresh)
+    });
   }catch(e){ setSyncStatus('SYNC OFFLINE · WILL RETRY', false); }
 }
 function schedulePush(){ if(!SYNC.enabled || !cryptoKey) return; clearTimeout(pushTimer); pushTimer = setTimeout(pushState, 1500); }
@@ -1101,26 +1161,26 @@ async function pullState(){
   if(!SYNC.enabled || !cryptoKey || pulling) return;
   pulling = true;
   try{
-    const r = await fetch(SYNC.url+'/rest/v1/jarvis_state?id=eq.'+rowId+'&select=data,updated_at', { headers:syncHeaders() });
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const rows = await r.json();
-    if(!rows.length){ pulling = false; await pushState(); return; }
-    const row = rows[0];
-    if(!lastRemoteTs || row.updated_at > lastRemoteTs){
-      const remote = await decryptState(row.data);
+    const row = await fetchRemoteRow();
+    if(!row){ pulling = false; await pushState(); return; }
+    const remote = await decryptState(row.data);
+    const newer = !lastRemoteTs || row.updated_at > lastRemoteTs;
+    if(newer){
       const state = (remote && remote.v === 2) ? (remote.state || {}) : remote;
       S = { profile:state.profile||S.profile, events:state.events||[], meds:state.meds||[],
             medLog:state.medLog||{}, plan:state.plan||S.plan, woLog:state.woLog||{}, counts:state.counts||[] };
-      applySyncedSecrets(remote);
-      lastRemoteTs = row.updated_at;
-      persistLocal(); renderAll();
-      if(typeof fillGmailPane === 'function') fillGmailPane();
-      if(typeof fillOutlookPane === 'function') fillOutlookPane();
-      if(typeof fillSyncPane === 'function') fillSyncPane();
-      if(typeof renderCalToday === 'function') renderCalToday();
-      else if(typeof renderOutlookToday === 'function') renderOutlookToday();
+      persistLocal();
     }
+    const got = applySyncedSecrets(remote);
+    lastRemoteTs = row.updated_at;
+    renderAll();
+    if(typeof fillGmailPane === 'function') fillGmailPane();
+    if(typeof fillOutlookPane === 'function') fillOutlookPane();
+    if(typeof fillSyncPane === 'function') fillSyncPane();
+    if(typeof renderCalToday === 'function') renderCalToday();
+    else if(typeof renderOutlookToday === 'function') renderOutlookToday();
     setSyncStatus('SYNCED '+new Date(row.updated_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).toUpperCase(), true);
+    updateVaultHint(got);
   }catch(e){
     if(e && e.name==='OperationError') setSyncStatus('SYNC CODE MISMATCH', false);
     else setSyncStatus('SYNC OFFLINE · WILL RETRY', false);
@@ -1128,7 +1188,7 @@ async function pullState(){
   pulling = false;
 }
 async function initSync(){
-  if(!SYNC.enabled || !SYNC.url || !SYNC.key || !SYNC.code){ setSyncStatus('SYNC NOT CONFIGURED', true); return; }
+  if(!SYNC.enabled || !SYNC.url || !SYNC.key || !SYNC.code){ setSyncStatus('SYNC NOT CONFIGURED', true); updateVaultHint(); return; }
   try{ await deriveKeys(SYNC.code); await pullState(); }
   catch(e){ setSyncStatus('SYNC INIT FAILED', false); }
 }
@@ -1138,23 +1198,9 @@ document.addEventListener('visibilitychange', () => { if(document.visibilityStat
 /* sync settings UI */
 function fillSyncPane(){
   $('f-sb-url').value = SYNC.url||''; $('f-sb-key').value = SYNC.key||''; $('f-sync-code').value = SYNC.code||'';
-  $('f-asst-key').value = asstKey || '';
   $('sync-status').textContent = SYNC.enabled ? 'SYNC IS ON' : 'SYNC IS OFF';
+  updateVaultHint();
 }
-$('btn-asst-key').onclick = async () => {
-  let v = ($('f-asst-key').value || '').trim();
-  if(/^JARVIS_CHAT_KEY=/i.test(v)) v = v.replace(/^JARVIS_CHAT_KEY=/i,'').trim();
-  if(!v){ toast('PASTE THE CHAT KEY FIRST'); return; }
-  if(/^gsk_/i.test(v)){ toast('THAT IS THE GROQ KEY — USE JARVIS_CHAT_KEY'); return; }
-  const btn = $('btn-asst-key');
-  btn.disabled = true; btn.textContent = 'CHECKING…';
-  const check = await verifyAsstKey(v);
-  btn.disabled = false; btn.textContent = 'SAVE KEY';
-  if(!check.ok){ toast((check.error || 'KEY FAILED').toUpperCase()); return; }
-  asstKey = v; store.set('jv_asstkey', v);
-  schedulePush();
-  toast('CHAT UNLOCKED · WILL SYNC TO YOUR OTHER DEVICES');
-};
 $('btn-gen-code').onclick = () => {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   const buf = crypto.getRandomValues(new Uint8Array(16));
@@ -1172,7 +1218,8 @@ $('btn-sync-save').onclick = async () => {
   store.set('jv_sync', SYNC);
   lastRemoteTs = null;
   await initSync();
-  toast('SYNC ENABLED');
+  schedulePush();
+  toast('SYNC ENABLED · VAULT WILL FOLLOW THIS CODE');
 };
 $('btn-sync-off').onclick = () => {
   SYNC.enabled = false; store.set('jv_sync', SYNC);
@@ -1626,6 +1673,10 @@ let asstKey = store.get('jv_asstkey', '');
 if(typeof asstKey === 'string' && /^gsk_/i.test(asstKey)){
   asstKey = ''; store.set('jv_asstkey', '');
 }
+if(!asstKey){
+  asstKey = BAKED_CHAT_KEY;
+  store.set('jv_asstkey', asstKey);
+}
 
 function asstSay(text, cls){
   const el = document.createElement('div');
@@ -1791,11 +1842,9 @@ let pendingAsk = '';
 
 async function askJarvis(text){
   if(asstBusy) return;
-  if(!asstKey){
-    pendingAsk = text;
-    asstSay(text, 'me');
-    promptForKey();
-    return;
+  if(!asstKey || /^gsk_/i.test(asstKey)){
+    asstKey = BAKED_CHAT_KEY;
+    store.set('jv_asstkey', asstKey);
   }
   asstBusy = true;
   $('asst-send').disabled = true;
@@ -1820,7 +1869,11 @@ async function askJarvis(text){
         })
       });
       const j = await r.json().catch(()=>({}));
-      if(r.status === 401){ asstKey = ''; store.set('jv_asstkey', ''); throw new Error('UNLOCK'); }
+      if(r.status === 401){
+        asstKey = BAKED_CHAT_KEY;
+        store.set('jv_asstkey', asstKey);
+        throw new Error('Chat key rejected by server. Check JARVIS_CHAT_KEY on Vercel.');
+      }
       if(!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
 
       const blocks = j.content || [];
@@ -1843,14 +1896,7 @@ async function askJarvis(text){
     }
     if(spoken) speak(spoken);
   }catch(e){
-    const msg = String(e && e.message ? e.message : e);
-    if(msg === 'UNLOCK'){
-      pendingAsk = text;
-      chat = [];   /* the unanswered turn would poison the next request */
-      promptForKey();
-    } else {
-      asstSay(msg, 'err');
-    }
+    asstSay(String(e && e.message ? e.message : e), 'err');
   }finally{
     asstBusy = false;
     $('asst-send').disabled = false;
@@ -1954,18 +2000,11 @@ $('asst-form').addEventListener('submit', e => {
 function openAsst(){
   $('asst').classList.add('on'); $('asst-fab').classList.add('hide');
   if(!$('asst-log').children.length){
-    if(!asstKey){
-      asstSay('Standing by — unlock chat on this device first.');
-      promptForKey();
-    } else {
-      asstSay('Standing by. What do you need?');
-    }
+    asstSay(SYNC.enabled
+      ? 'Standing by. Sync is on — your vault follows this device.'
+      : 'Standing by. Turn SYNC on with your code so other devices get your stuff.');
   }
-  setTimeout(()=>{
-    const unlock = $('asst-unlock-form');
-    if(unlock){ const inp = unlock.querySelector('input'); if(inp) inp.focus(); }
-    else $('asst-in').focus();
-  }, 80);
+  setTimeout(()=> $('asst-in').focus(), 80);
 }
 $('asst-fab').onclick = openAsst;
 $('asst-close').onclick = () => { $('asst').classList.remove('on'); $('asst-fab').classList.remove('hide'); if('speechSynthesis' in window) speechSynthesis.cancel(); };
