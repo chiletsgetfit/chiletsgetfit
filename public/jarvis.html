@@ -325,7 +325,7 @@ input:focus{border-color:var(--cyan)}
       <div id="greeting">GOOD EVENING</div>
       <div id="sysline">ALL SYSTEMS NOMINAL</div>
       <div id="sync-ind"></div>
-      <div id="build-ind">BUILD 2026.08.06-anydevice</div>
+      <div id="build-ind">BUILD 2026.08.06-syncfix</div>
     </div>
     <div class="reactor" id="reactor" title="Tap for spoken briefing">
       <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="core"></div>
@@ -462,11 +462,17 @@ input:focus{border-color:var(--cyan)}
     </div>
 
     <div class="pane" id="pane-sync">
-      <div class="hint">One sync code = your vault on any device. Schedule, meds, training, chat unlock, and Google/Outlook tokens are encrypted with that code before leaving the phone. Paste URL + anon key once (already baked in for you), turn SYNC on with the SAME code everywhere. Treat the sync code like a password.</div>
+      <div class="hint">Chat works without this. Your <b>schedule / meds / training / Google</b> only follow the sync code. Use the <b>exact same code</b> on computer and phone, then PUSH on the computer and PULL on the phone.</div>
       <div class="frow"><label>PROJECT URL</label><input type="text" id="f-sb-url" placeholder="https://xxxx.supabase.co" style="flex:1"></div>
       <div class="frow"><label>ANON KEY</label><input type="text" id="f-sb-key" placeholder="eyJhbGciOi..." style="flex:1"></div>
       <div class="frow"><label>SYNC CODE</label><input type="text" id="f-sync-code" placeholder="Same code on every device" style="flex:1"><button class="btn ghost" id="btn-gen-code">GENERATE</button></div>
-      <div class="frow"><button class="btn" id="btn-sync-save">ENABLE SYNC</button><button class="btn ghost" id="btn-sync-off">DISABLE</button><span id="sync-status" class="mono-label" style="margin-left:6px"></span></div>
+      <div class="frow">
+        <button class="btn" id="btn-sync-save">ENABLE SYNC</button>
+        <button class="btn ghost" id="btn-sync-push">PUSH THIS DEVICE</button>
+        <button class="btn ghost" id="btn-sync-pull">PULL FROM CLOUD</button>
+        <button class="btn ghost" id="btn-sync-off">DISABLE</button>
+      </div>
+      <div class="frow"><span id="sync-status" class="mono-label"></span></div>
       <div class="hint" id="vault-ready" style="margin-top:8px"></div>
     </div>
 
@@ -515,7 +521,7 @@ input:focus{border-color:var(--cyan)}
   <div id="asst-head">
     <h3>J.A.R.V.I.S</h3>
     <span id="asst-state">READY</span>
-    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.06-anydevice</span>
+    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.06-syncfix</span>
     <button id="asst-close">CLOSE ✕</button>
   </div>
   <div id="asst-log"></div>
@@ -1004,15 +1010,32 @@ const SYNC_DEFAULTS = {
 };
 /* Same value as Vercel JARVIS_CHAT_KEY — chat works on every device without a separate unlock step. */
 const BAKED_CHAT_KEY = 'local-test-passphrase';
+const normSyncCode = c => String(c||'').trim().replace(/\s+/g,'').toUpperCase();
 
 let SYNC = store.get('jv_sync', { url:'', key:'', code:'', enabled:false });
 if(!SYNC.url && SYNC_DEFAULTS.url) SYNC.url = SYNC_DEFAULTS.url;
 if(!SYNC.key && SYNC_DEFAULTS.anonKey) SYNC.key = SYNC_DEFAULTS.anonKey;
+if(SYNC.code) SYNC.code = normSyncCode(SYNC.code);
 
 let cryptoKey = null, rowId = null, lastRemoteTs = null, pushTimer = null, pulling = false;
 const _enc = new TextEncoder(), _dec = new TextDecoder();
-const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const b64 = buf => {
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  let bin = '';
+  const chunk = 0x8000;
+  for(let i=0;i<bytes.length;i+=chunk) bin += String.fromCharCode(...bytes.subarray(i, i+chunk));
+  return btoa(bin);
+};
 const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+function stateRichness(state){
+  if(!state) return 0;
+  return (state.events||[]).length*3
+    + (state.meds||[]).length*2
+    + (state.counts||[]).length
+    + Object.keys(state.medLog||{}).length
+    + Object.keys(state.woLog||{}).length
+    + ((state.plan && state.plan.days) ? Object.keys(state.plan.days).length : 0);
+}
 
 async function deriveKeys(code){
   const base = await crypto.subtle.importKey('raw', _enc.encode(code), 'PBKDF2', false, ['deriveKey']);
@@ -1052,13 +1075,27 @@ function pickOauth(a, b){
     email: src.email || other.email || ''
   };
 }
-function syncEnvelope(baseRemote){
+function syncEnvelope(baseRemote, { preferLocal=false } = {}){
   const remote = (baseRemote && baseRemote.v === 2) ? baseRemote : null;
+  const remoteState = remote ? remote.state : ((baseRemote && !baseRemote.v) ? baseRemote : null);
   const localKey = (typeof asstKey === 'string' && asstKey && !/^gsk_/i.test(asstKey)) ? asstKey : '';
   const chatKey = localKey || (remote && remote.chatKey) || BAKED_CHAT_KEY;
+  let state = S;
+  /* Background sync: never let a sparse phone overwrite a rich computer vault. */
+  if(!preferLocal && remoteState && stateRichness(S) + 2 < stateRichness(remoteState)){
+    state = {
+      profile: remoteState.profile || S.profile,
+      events: remoteState.events || [],
+      meds: remoteState.meds || [],
+      medLog: remoteState.medLog || {},
+      plan: remoteState.plan || S.plan,
+      woLog: remoteState.woLog || {},
+      counts: remoteState.counts || []
+    };
+  }
   return {
     v: 2,
-    state: S,
+    state,
     chatKey,
     google: pickOauth(localGoogle(), remote && remote.google),
     outlook: pickOauth(localOutlook(), remote && remote.outlook)
@@ -1100,11 +1137,20 @@ function applySyncedSecrets(remote){
 function updateVaultHint(got){
   const el = $('vault-ready');
   if(!el) return;
-  if(!SYNC.enabled){ el.textContent = 'SYNC OFF — enable with your code to pull this vault onto any device.'; return; }
-  const bits = ['CHAT READY'];
-  if((got && got.google) || (typeof ggConnected === 'function' && ggConnected())) bits.push('GOOGLE LINKED');
-  if((got && got.outlook) || (typeof msConnected === 'function' && msConnected())) bits.push('OUTLOOK LINKED');
-  el.textContent = 'VAULT: ' + bits.join(' · ');
+  if(!SYNC.enabled){
+    el.textContent = 'SYNC IS OFF on this device — schedule stays local until you enable it with the same code as your other device.';
+    return;
+  }
+  const vault = rowId ? ('VAULT '+rowId.slice(0,8)) : 'VAULT';
+  const bits = [
+    vault,
+    (S.events||[]).length + ' EVENTS',
+    (S.meds||[]).length + ' MEDS',
+    'CHAT READY'
+  ];
+  if((got && got.google) || (typeof ggConnected === 'function' && ggConnected())) bits.push('GOOGLE');
+  if((got && got.outlook) || (typeof msConnected === 'function' && msConnected())) bits.push('OUTLOOK');
+  el.textContent = bits.join(' · ') + ' — phone and computer must show the same VAULT id.';
 }
 async function encryptState(envelope){
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -1128,48 +1174,81 @@ async function fetchRemoteRow(){
   const rows = await r.json();
   return rows[0] || null;
 }
-async function pushState(){
-  if(!SYNC.enabled || !cryptoKey) return;
+function applyRemoteState(remote, { force=false } = {}){
+  const state = (remote && remote.v === 2) ? (remote.state || {}) : remote;
+  if(!state) return false;
+  const remoteR = stateRichness(state);
+  const localR = stateRichness(S);
+  if(!force && remoteR + 2 < localR){
+    /* Local device is ahead (typical: computer with real schedule, empty phone vault). */
+    return 'local-ahead';
+  }
+  S = { profile:state.profile||S.profile, events:state.events||[], meds:state.meds||[],
+        medLog:state.medLog||{}, plan:state.plan||S.plan, woLog:state.woLog||{}, counts:state.counts||[] };
+  persistLocal();
+  return true;
+}
+async function pushState({ preferLocal=false } = {}){
+  if(!SYNC.enabled || !cryptoKey) return false;
   try{
     let remoteEnv = null;
     try{
       const existing = await fetchRemoteRow();
       if(existing && existing.data) remoteEnv = await decryptState(existing.data);
     }catch(e){}
-    const envelope = syncEnvelope(remoteEnv);
+    const envelope = syncEnvelope(remoteEnv, { preferLocal });
+    if(!preferLocal && envelope.state && stateRichness(envelope.state) > stateRichness(S)){
+      S = envelope.state; persistLocal(); renderAll();
+    }
     if(envelope.chatKey && (!asstKey || /^gsk_/i.test(asstKey))){
       asstKey = envelope.chatKey; store.set('jv_asstkey', asstKey);
     }
     const data = await encryptState(envelope);
     const now = new Date().toISOString();
-    const r = await fetch(SYNC.url+'/rest/v1/jarvis_state', {
+    const r = await fetch(SYNC.url+'/rest/v1/jarvis_state?on_conflict=id', {
       method:'POST',
-      headers:{ ...syncHeaders(), 'Prefer':'resolution=merge-duplicates' },
+      headers:{ ...syncHeaders(), 'Prefer':'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify([{ id:rowId, data, updated_at:now }])
     });
-    if(!r.ok) throw new Error('HTTP '+r.status);
+    if(!r.ok){
+      const errTxt = await r.text().catch(()=>'');
+      throw new Error('HTTP '+r.status+' '+errTxt);
+    }
     lastRemoteTs = now;
-    setSyncStatus('SYNCED '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).toUpperCase(), true);
+    setSyncStatus('PUSHED '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).toUpperCase(), true);
     updateVaultHint({
       google: !!(envelope.google && envelope.google.refresh),
       outlook: !!(envelope.outlook && envelope.outlook.refresh)
     });
-  }catch(e){ setSyncStatus('SYNC OFFLINE · WILL RETRY', false); }
+    return true;
+  }catch(e){
+    setSyncStatus('PUSH FAILED · CHECK NETWORK', false);
+    return false;
+  }
 }
-function schedulePush(){ if(!SYNC.enabled || !cryptoKey) return; clearTimeout(pushTimer); pushTimer = setTimeout(pushState, 1500); }
-async function pullState(){
-  if(!SYNC.enabled || !cryptoKey || pulling) return;
+function schedulePush(){ if(!SYNC.enabled || !cryptoKey) return; clearTimeout(pushTimer); pushTimer = setTimeout(()=>{ pushState(); }, 1500); }
+async function pullState({ force=false } = {}){
+  if(!SYNC.enabled || !cryptoKey || pulling) return false;
   pulling = true;
   try{
     const row = await fetchRemoteRow();
-    if(!row){ pulling = false; await pushState(); return; }
+    if(!row){
+      pulling = false;
+      const ok = await pushState();
+      return ok;
+    }
     const remote = await decryptState(row.data);
-    const newer = !lastRemoteTs || row.updated_at > lastRemoteTs;
-    if(newer){
-      const state = (remote && remote.v === 2) ? (remote.state || {}) : remote;
-      S = { profile:state.profile||S.profile, events:state.events||[], meds:state.meds||[],
-            medLog:state.medLog||{}, plan:state.plan||S.plan, woLog:state.woLog||{}, counts:state.counts||[] };
-      persistLocal();
+    const newer = force || !lastRemoteTs || row.updated_at > lastRemoteTs;
+    let applied = false;
+    if(newer || force){
+      const result = applyRemoteState(remote, { force });
+      if(result === 'local-ahead'){
+        setSyncStatus('THIS DEVICE HAS MORE DATA · PUSH IT', true);
+        updateVaultHint();
+        pulling = false;
+        return 'local-ahead';
+      }
+      applied = !!result;
     }
     const got = applySyncedSecrets(remote);
     lastRemoteTs = row.updated_at;
@@ -1179,17 +1258,20 @@ async function pullState(){
     if(typeof fillSyncPane === 'function') fillSyncPane();
     if(typeof renderCalToday === 'function') renderCalToday();
     else if(typeof renderOutlookToday === 'function') renderOutlookToday();
-    setSyncStatus('SYNCED '+new Date(row.updated_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).toUpperCase(), true);
+    setSyncStatus((applied || force ? 'PULLED ' : 'SYNCED ') + new Date(row.updated_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).toUpperCase(), true);
     updateVaultHint(got);
+    return true;
   }catch(e){
-    if(e && e.name==='OperationError') setSyncStatus('SYNC CODE MISMATCH', false);
-    else setSyncStatus('SYNC OFFLINE · WILL RETRY', false);
+    if(e && e.name==='OperationError') setSyncStatus('SYNC CODE MISMATCH — use the computer code', false);
+    else setSyncStatus('PULL FAILED · CHECK NETWORK', false);
+    return false;
+  }finally{
+    pulling = false;
   }
-  pulling = false;
 }
 async function initSync(){
   if(!SYNC.enabled || !SYNC.url || !SYNC.key || !SYNC.code){ setSyncStatus('SYNC NOT CONFIGURED', true); updateVaultHint(); return; }
-  try{ await deriveKeys(SYNC.code); await pullState(); }
+  try{ await deriveKeys(SYNC.code); await pullState({ force:true }); }
   catch(e){ setSyncStatus('SYNC INIT FAILED', false); }
 }
 setInterval(pullState, 60*1000);
@@ -1212,18 +1294,41 @@ $('btn-gen-code').onclick = () => {
 $('btn-sync-save').onclick = async () => {
   const url = $('f-sb-url').value.trim().replace(/\/+$/,'');
   const key = $('f-sb-key').value.trim();
-  const code = $('f-sync-code').value.trim();
+  const code = normSyncCode($('f-sync-code').value);
   if(!url || !key || !code){ toast('NEED URL, KEY AND A SYNC CODE'); return; }
+  $('f-sync-code').value = code;
   SYNC = { url, key, code, enabled:true };
   store.set('jv_sync', SYNC);
   lastRemoteTs = null;
   await initSync();
-  schedulePush();
-  toast('SYNC ENABLED · VAULT WILL FOLLOW THIS CODE');
+  const result = await pullState({ force:true });
+  if(result === 'local-ahead'){
+    await pushState();
+    toast('SYNC ON · PUSHED THIS DEVICE ('+rowId.slice(0,8)+')');
+  } else {
+    toast('SYNC ON · VAULT '+rowId.slice(0,8)+' · '+(S.events||[]).length+' EVENTS');
+  }
+  updateVaultHint();
+};
+$('btn-sync-push').onclick = async () => {
+  if(!SYNC.enabled){ toast('ENABLE SYNC FIRST'); return; }
+  if(!cryptoKey) await deriveKeys(SYNC.code);
+  const ok = await pushState({ preferLocal:true });
+  toast(ok ? ('PUSHED · VAULT '+rowId.slice(0,8)+' · '+(S.events||[]).length+' EVENTS') : 'PUSH FAILED');
+};
+$('btn-sync-pull').onclick = async () => {
+  if(!SYNC.enabled){ toast('ENABLE SYNC FIRST'); return; }
+  if(!cryptoKey) await deriveKeys(SYNC.code);
+  lastRemoteTs = null;
+  const result = await pullState({ force:true });
+  if(result === 'local-ahead') toast('THIS DEVICE HAS MORE DATA — TAP PUSH THIS DEVICE');
+  else if(result) toast('PULLED · '+(S.events||[]).length+' EVENTS · '+(S.meds||[]).length+' MEDS');
+  else toast('PULL FAILED');
 };
 $('btn-sync-off').onclick = () => {
   SYNC.enabled = false; store.set('jv_sync', SYNC);
   setSyncStatus('SYNC IS OFF', true); $('sync-ind').textContent = '';
+  updateVaultHint();
   toast('SYNC DISABLED');
 };
 
