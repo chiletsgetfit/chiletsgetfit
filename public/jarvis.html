@@ -325,7 +325,7 @@ input:focus{border-color:var(--cyan)}
       <div id="greeting">GOOD EVENING</div>
       <div id="sysline">ALL SYSTEMS NOMINAL</div>
       <div id="sync-ind"></div>
-      <div id="build-ind">BUILD 2026.08.06-syncfix</div>
+      <div id="build-ind">BUILD 2026.08.06-once</div>
     </div>
     <div class="reactor" id="reactor" title="Tap for spoken briefing">
       <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="core"></div>
@@ -462,17 +462,19 @@ input:focus{border-color:var(--cyan)}
     </div>
 
     <div class="pane" id="pane-sync">
-      <div class="hint">Chat works without this. Your <b>schedule / meds / training / Google</b> only follow the sync code. Use the <b>exact same code</b> on computer and phone, then PUSH on the computer and PULL on the phone.</div>
+      <div class="hint">One-time setup per device. Turn SYNC on with the <b>same code</b> on computer and phone — after that it stays on and keeps updating by itself. Push/Pull are only if something looks out of date.</div>
       <div class="frow"><label>PROJECT URL</label><input type="text" id="f-sb-url" placeholder="https://xxxx.supabase.co" style="flex:1"></div>
       <div class="frow"><label>ANON KEY</label><input type="text" id="f-sb-key" placeholder="eyJhbGciOi..." style="flex:1"></div>
       <div class="frow"><label>SYNC CODE</label><input type="text" id="f-sync-code" placeholder="Same code on every device" style="flex:1"><button class="btn ghost" id="btn-gen-code">GENERATE</button></div>
       <div class="frow">
         <button class="btn" id="btn-sync-save">ENABLE SYNC</button>
-        <button class="btn ghost" id="btn-sync-push">PUSH THIS DEVICE</button>
-        <button class="btn ghost" id="btn-sync-pull">PULL FROM CLOUD</button>
         <button class="btn ghost" id="btn-sync-off">DISABLE</button>
+        <span id="sync-status" class="mono-label" style="margin-left:6px"></span>
       </div>
-      <div class="frow"><span id="sync-status" class="mono-label"></span></div>
+      <div class="frow" style="margin-top:4px">
+        <button class="btn ghost" id="btn-sync-push">PUSH NOW</button>
+        <button class="btn ghost" id="btn-sync-pull">PULL NOW</button>
+      </div>
       <div class="hint" id="vault-ready" style="margin-top:8px"></div>
     </div>
 
@@ -521,7 +523,7 @@ input:focus{border-color:var(--cyan)}
   <div id="asst-head">
     <h3>J.A.R.V.I.S</h3>
     <span id="asst-state">READY</span>
-    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.06-syncfix</span>
+    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.06-once</span>
     <button id="asst-close">CLOSE ✕</button>
   </div>
   <div id="asst-log"></div>
@@ -1138,19 +1140,19 @@ function updateVaultHint(got){
   const el = $('vault-ready');
   if(!el) return;
   if(!SYNC.enabled){
-    el.textContent = 'SYNC IS OFF on this device — schedule stays local until you enable it with the same code as your other device.';
+    el.textContent = 'SYNC OFF — one-time: enable with the same code you use on your other device. Then leave it on.';
     return;
   }
   const vault = rowId ? ('VAULT '+rowId.slice(0,8)) : 'VAULT';
   const bits = [
+    'ON · AUTO',
     vault,
     (S.events||[]).length + ' EVENTS',
-    (S.meds||[]).length + ' MEDS',
-    'CHAT READY'
+    (S.meds||[]).length + ' MEDS'
   ];
   if((got && got.google) || (typeof ggConnected === 'function' && ggConnected())) bits.push('GOOGLE');
   if((got && got.outlook) || (typeof msConnected === 'function' && msConnected())) bits.push('OUTLOOK');
-  el.textContent = bits.join(' · ') + ' — phone and computer must show the same VAULT id.';
+  el.textContent = bits.join(' · ') + (rowId ? ' — match this vault id on your other device once.' : '');
 }
 async function encryptState(envelope){
   const iv = crypto.getRandomValues(new Uint8Array(12));
