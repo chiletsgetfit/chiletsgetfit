@@ -325,7 +325,7 @@ input:focus{border-color:var(--cyan)}
       <div id="greeting">GOOD EVENING</div>
       <div id="sysline">ALL SYSTEMS NOMINAL</div>
       <div id="sync-ind"></div>
-      <div id="build-ind">BUILD 2026.08.06-once</div>
+      <div id="build-ind">BUILD 2026.08.06-autosync</div>
     </div>
     <div class="reactor" id="reactor" title="Tap for spoken briefing">
       <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="core"></div>
@@ -462,20 +462,23 @@ input:focus{border-color:var(--cyan)}
     </div>
 
     <div class="pane" id="pane-sync">
-      <div class="hint">One-time setup per device. Turn SYNC on with the <b>same code</b> on computer and phone — after that it stays on and keeps updating by itself. Push/Pull are only if something looks out of date.</div>
-      <div class="frow"><label>PROJECT URL</label><input type="text" id="f-sb-url" placeholder="https://xxxx.supabase.co" style="flex:1"></div>
-      <div class="frow"><label>ANON KEY</label><input type="text" id="f-sb-key" placeholder="eyJhbGciOi..." style="flex:1"></div>
-      <div class="frow"><label>SYNC CODE</label><input type="text" id="f-sync-code" placeholder="Same code on every device" style="flex:1"><button class="btn ghost" id="btn-gen-code">GENERATE</button></div>
-      <div class="frow">
-        <button class="btn" id="btn-sync-save">ENABLE SYNC</button>
-        <button class="btn ghost" id="btn-sync-off">DISABLE</button>
-        <span id="sync-status" class="mono-label" style="margin-left:6px"></span>
-      </div>
+      <div class="hint">Automatic. Open JARVIS on any phone or computer and the same vault loads — no code to enter. Push/Pull only if something looks stuck.</div>
+      <div class="frow"><span id="sync-status" class="mono-label"></span></div>
       <div class="frow" style="margin-top:4px">
         <button class="btn ghost" id="btn-sync-push">PUSH NOW</button>
         <button class="btn ghost" id="btn-sync-pull">PULL NOW</button>
       </div>
       <div class="hint" id="vault-ready" style="margin-top:8px"></div>
+      <details style="margin-top:12px">
+        <summary class="mono-label" style="cursor:pointer;color:var(--ink3)">ADVANCED</summary>
+        <div class="frow" style="margin-top:8px"><label>PROJECT URL</label><input type="text" id="f-sb-url" placeholder="https://xxxx.supabase.co" style="flex:1"></div>
+        <div class="frow"><label>ANON KEY</label><input type="text" id="f-sb-key" placeholder="eyJhbGciOi..." style="flex:1"></div>
+        <div class="frow"><label>SYNC CODE</label><input type="text" id="f-sync-code" placeholder="Shared vault code" style="flex:1"><button class="btn ghost" id="btn-gen-code">GENERATE</button></div>
+        <div class="frow">
+          <button class="btn" id="btn-sync-save">SAVE / ENABLE</button>
+          <button class="btn ghost" id="btn-sync-off">DISABLE</button>
+        </div>
+      </details>
     </div>
 
     <div class="pane" id="pane-outlook">
@@ -523,7 +526,7 @@ input:focus{border-color:var(--cyan)}
   <div id="asst-head">
     <h3>J.A.R.V.I.S</h3>
     <span id="asst-state">READY</span>
-    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.06-once</span>
+    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.06-autosync</span>
     <button id="asst-close">CLOSE ✕</button>
   </div>
   <div id="asst-log"></div>
@@ -1008,16 +1011,21 @@ $('btn-reset').onclick = () => {
    needs the sync code. Leave blank to paste them in the SYNC tab instead. */
 const SYNC_DEFAULTS = {
   url: 'https://vdduggdtsmuccdtklloc.supabase.co',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkZHVnZ2R0c211Y2NkdGtsbG9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwODE4NzYsImV4cCI6MjA5MzY1Nzg3Nn0.5lFijuHlbJHu42yMVAcFaiziWlhJIpUNKccGyjm49dY'
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkZHVnZ2R0c211Y2NkdGtsbG9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwODE4NzYsImV4cCI6MjA5MzY1Nzg3Nn0.5lFijuHlbJHu42yMVAcFaiziWlhJIpUNKccGyjm49dY',
+  /* Shared personal vault — every device joins this automatically. */
+  code: 'CHILETSGETFIT-JARVIS-HOME'
 };
 /* Same value as Vercel JARVIS_CHAT_KEY — chat works on every device without a separate unlock step. */
 const BAKED_CHAT_KEY = 'local-test-passphrase';
 const normSyncCode = c => String(c||'').trim().replace(/\s+/g,'').toUpperCase();
 
 let SYNC = store.get('jv_sync', { url:'', key:'', code:'', enabled:false });
-if(!SYNC.url && SYNC_DEFAULTS.url) SYNC.url = SYNC_DEFAULTS.url;
-if(!SYNC.key && SYNC_DEFAULTS.anonKey) SYNC.key = SYNC_DEFAULTS.anonKey;
-if(SYNC.code) SYNC.code = normSyncCode(SYNC.code);
+/* Personal JARVIS: always use the baked vault so any random device just works. */
+SYNC.url = SYNC_DEFAULTS.url;
+SYNC.key = SYNC_DEFAULTS.anonKey;
+SYNC.code = normSyncCode(SYNC_DEFAULTS.code);
+if(SYNC.disabledByUser !== true) SYNC.enabled = true;
+store.set('jv_sync', SYNC);
 
 let cryptoKey = null, rowId = null, lastRemoteTs = null, pushTimer = null, pulling = false;
 const _enc = new TextEncoder(), _dec = new TextDecoder();
@@ -1140,19 +1148,18 @@ function updateVaultHint(got){
   const el = $('vault-ready');
   if(!el) return;
   if(!SYNC.enabled){
-    el.textContent = 'SYNC OFF — one-time: enable with the same code you use on your other device. Then leave it on.';
+    el.textContent = 'SYNC OFF (advanced). Re-enable to share schedule across devices again.';
     return;
   }
-  const vault = rowId ? ('VAULT '+rowId.slice(0,8)) : 'VAULT';
   const bits = [
-    'ON · AUTO',
-    vault,
+    'AUTO ON',
+    rowId ? ('VAULT '+rowId.slice(0,8)) : 'CONNECTING…',
     (S.events||[]).length + ' EVENTS',
     (S.meds||[]).length + ' MEDS'
   ];
   if((got && got.google) || (typeof ggConnected === 'function' && ggConnected())) bits.push('GOOGLE');
   if((got && got.outlook) || (typeof msConnected === 'function' && msConnected())) bits.push('OUTLOOK');
-  el.textContent = bits.join(' · ') + (rowId ? ' — match this vault id on your other device once.' : '');
+  el.textContent = bits.join(' · ');
 }
 async function encryptState(envelope){
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -1273,8 +1280,20 @@ async function pullState({ force=false } = {}){
 }
 async function initSync(){
   if(!SYNC.enabled || !SYNC.url || !SYNC.key || !SYNC.code){ setSyncStatus('SYNC NOT CONFIGURED', true); updateVaultHint(); return; }
-  try{ await deriveKeys(SYNC.code); await pullState({ force:true }); }
-  catch(e){ setSyncStatus('SYNC INIT FAILED', false); }
+  try{
+    await deriveKeys(SYNC.code);
+    const result = await pullState({ force:true });
+    if(result === 'local-ahead'){
+      await pushState({ preferLocal:true });
+      setSyncStatus('AUTO · UPLOADED THIS DEVICE', true);
+    } else if(result === false){
+      await pushState({ preferLocal:true });
+    } else {
+      const row = await fetchRemoteRow();
+      if(!row) await pushState({ preferLocal:true });
+    }
+    updateVaultHint();
+  }catch(e){ setSyncStatus('SYNC INIT FAILED', false); }
 }
 setInterval(pullState, 60*1000);
 document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') pullState(); });
@@ -1294,41 +1313,36 @@ $('btn-gen-code').onclick = () => {
   toast('CODE GENERATED. SAVE IT SOMEWHERE SAFE.');
 };
 $('btn-sync-save').onclick = async () => {
-  const url = $('f-sb-url').value.trim().replace(/\/+$/,'');
-  const key = $('f-sb-key').value.trim();
-  const code = normSyncCode($('f-sync-code').value);
-  if(!url || !key || !code){ toast('NEED URL, KEY AND A SYNC CODE'); return; }
+  const url = $('f-sb-url').value.trim().replace(/\/+$/,'') || SYNC_DEFAULTS.url;
+  const key = $('f-sb-key').value.trim() || SYNC_DEFAULTS.anonKey;
+  const code = normSyncCode($('f-sync-code').value) || normSyncCode(SYNC_DEFAULTS.code);
   $('f-sync-code').value = code;
-  SYNC = { url, key, code, enabled:true };
+  SYNC = { url, key, code, enabled:true, disabledByUser:false };
   store.set('jv_sync', SYNC);
   lastRemoteTs = null;
   await initSync();
-  const result = await pullState({ force:true });
-  if(result === 'local-ahead'){
-    await pushState();
-    toast('SYNC ON · PUSHED THIS DEVICE ('+rowId.slice(0,8)+')');
-  } else {
-    toast('SYNC ON · VAULT '+rowId.slice(0,8)+' · '+(S.events||[]).length+' EVENTS');
-  }
+  toast('SYNC ON · VAULT '+(rowId?rowId.slice(0,8):'')+' · '+(S.events||[]).length+' EVENTS');
   updateVaultHint();
 };
 $('btn-sync-push').onclick = async () => {
-  if(!SYNC.enabled){ toast('ENABLE SYNC FIRST'); return; }
+  if(!SYNC.enabled){ SYNC.enabled = true; SYNC.disabledByUser = false; store.set('jv_sync', SYNC); }
   if(!cryptoKey) await deriveKeys(SYNC.code);
   const ok = await pushState({ preferLocal:true });
-  toast(ok ? ('PUSHED · VAULT '+rowId.slice(0,8)+' · '+(S.events||[]).length+' EVENTS') : 'PUSH FAILED');
+  toast(ok ? ('PUSHED · '+(S.events||[]).length+' EVENTS') : 'PUSH FAILED');
 };
 $('btn-sync-pull').onclick = async () => {
-  if(!SYNC.enabled){ toast('ENABLE SYNC FIRST'); return; }
+  if(!SYNC.enabled){ SYNC.enabled = true; SYNC.disabledByUser = false; store.set('jv_sync', SYNC); }
   if(!cryptoKey) await deriveKeys(SYNC.code);
   lastRemoteTs = null;
   const result = await pullState({ force:true });
-  if(result === 'local-ahead') toast('THIS DEVICE HAS MORE DATA — TAP PUSH THIS DEVICE');
+  if(result === 'local-ahead') toast('THIS DEVICE HAS MORE DATA — TAP PUSH NOW');
   else if(result) toast('PULLED · '+(S.events||[]).length+' EVENTS · '+(S.meds||[]).length+' MEDS');
   else toast('PULL FAILED');
 };
 $('btn-sync-off').onclick = () => {
-  SYNC.enabled = false; store.set('jv_sync', SYNC);
+  SYNC.enabled = false;
+  SYNC.disabledByUser = true;
+  store.set('jv_sync', SYNC);
   setSyncStatus('SYNC IS OFF', true); $('sync-ind').textContent = '';
   updateVaultHint();
   toast('SYNC DISABLED');
@@ -2107,9 +2121,7 @@ $('asst-form').addEventListener('submit', e => {
 function openAsst(){
   $('asst').classList.add('on'); $('asst-fab').classList.add('hide');
   if(!$('asst-log').children.length){
-    asstSay(SYNC.enabled
-      ? 'Standing by. Sync is on — your vault follows this device.'
-      : 'Standing by. Turn SYNC on with your code so other devices get your stuff.');
+    asstSay('Standing by. Your vault follows every device automatically.');
   }
   setTimeout(()=> $('asst-in').focus(), 80);
 }
