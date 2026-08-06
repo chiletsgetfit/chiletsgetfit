@@ -325,7 +325,7 @@ input:focus{border-color:var(--cyan)}
       <div id="greeting">GOOD EVENING</div>
       <div id="sysline">ALL SYSTEMS NOMINAL</div>
       <div id="sync-ind"></div>
-      <div id="build-ind">BUILD 2026.08.06-ggoauth</div>
+      <div id="build-ind">BUILD 2026.08.06-ggfix</div>
     </div>
     <div class="reactor" id="reactor" title="Tap for spoken briefing">
       <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="core"></div>
@@ -498,9 +498,9 @@ input:focus{border-color:var(--cyan)}
     <div class="pane" id="pane-gmail">
       <div class="hint">One Google connect for <b>Calendar + Gmail</b>. With SYNC on, tokens travel in your encrypted vault to other devices (still connect Google once first). Add MidValley into Google Calendar so JARVIS only needs this.</div>
       <div class="frow"><label>CLIENT ID</label><input type="text" id="f-gg-client" placeholder="Google OAuth Client ID (...apps.googleusercontent.com)" style="flex:1"></div>
-      <div class="frow"><label>SECRET</label><input type="password" id="f-gg-secret" placeholder="Leave blank (browser PKCE)" style="flex:1"></div>
+      <div class="frow"><label>SECRET</label><input type="password" id="f-gg-secret" placeholder="Google client secret (required)" style="flex:1"></div>
       <div class="frow"><label>REDIRECT</label><input type="text" id="f-gg-redirect" readonly style="flex:1"></div>
-      <div class="hint" style="margin-top:2px">Enable <b>Google Calendar API</b> and <b>Gmail API</b>. Consent screen: External + add yourself as a test user. Redirect URI must match exactly.</div>
+      <div class="hint" style="margin-top:2px">Paste <b>Client ID and Client secret</b> from Google Cloud (Web application). Redirect must match the REDIRECT box. Add your Gmail as an OAuth test user.</div>
       <div class="frow" style="margin-top:10px">
         <button class="btn" id="btn-gg-save">SAVE</button>
         <button class="btn ghost" id="btn-gg-connect">CONNECT GOOGLE</button>
@@ -526,7 +526,7 @@ input:focus{border-color:var(--cyan)}
   <div id="asst-head">
     <h3>J.A.R.V.I.S</h3>
     <span id="asst-state">READY</span>
-    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.06-ggoauth</span>
+    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.06-ggfix</span>
     <button id="asst-close">CLOSE ✕</button>
   </div>
   <div id="asst-log"></div>
@@ -1575,24 +1575,29 @@ let gcalToday = [];
 
 const ggConfigured = () => !!GG.clientId;
 const ggConnected  = () => !!(ggConfigured() && (GG.refresh || GG.access));
+let ggLastError = store.get('jv_gg_err', '');
 function ggPersist(){ store.set('jv_gg', GG); schedulePush(); }
 function setGgStatus(txt){ const el = $('gg-status'); if(el) el.textContent = txt; }
-function ggTokenBody(params){
-  const body = { client_id: GG.clientId, ...params };
-  /* Browser PKCE: omit secret. Sending a web-client secret from the browser
-     often makes Google accept login then fail/ignore the token exchange. */
-  return body;
+function ggOauthStore(v){
+  try{
+    if(v == null) localStorage.removeItem('jv_gg_oauth');
+    else localStorage.setItem('jv_gg_oauth', JSON.stringify(v));
+  }catch(e){}
+}
+function ggOauthLoad(){
+  try{ return JSON.parse(localStorage.getItem('jv_gg_oauth') || 'null'); }catch(e){ return null; }
 }
 
 async function ggBeginAuth(){
   if(!ggConfigured()){ toast('ADD GOOGLE CLIENT ID FIRST'); return; }
+  if(!GG.secret){ toast('PASTE THE CLIENT SECRET TOO — THEN SAVE'); return; }
   const { verifier, challenge } = await pkcePair();
   const state = 'gg.' + b64url(crypto.getRandomValues(new Uint8Array(12)));
-  sessionStorage.setItem('jv_oauth', 'gg');
-  sessionStorage.setItem('jv_gg_pkce', verifier);
-  sessionStorage.setItem('jv_gg_state', state);
+  const redirectUri = ggRedirect();
+  ggOauthStore({ verifier, state, redirectUri, at: Date.now() });
+  ggLastError = ''; store.set('jv_gg_err', '');
   const q = new URLSearchParams({
-    client_id: GG.clientId, response_type:'code', redirect_uri: ggRedirect(),
+    client_id: GG.clientId, response_type:'code', redirect_uri: redirectUri,
     scope: GG_SCOPE, state, code_challenge: challenge, code_challenge_method:'S256',
     access_type:'offline', prompt:'consent', include_granted_scopes:'true'
   });
@@ -1600,48 +1605,61 @@ async function ggBeginAuth(){
 }
 
 async function ggTokenRequest(params){
-  const r = await fetch('https://oauth2.googleapis.com/token', {
+  const r = await fetch('/api/jarvis/google/token', {
     method:'POST',
-    headers:{ 'Content-Type':'application/x-www-form-urlencoded' },
-    body: new URLSearchParams(ggTokenBody(params)).toString()
+    headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify({
+      client_id: GG.clientId,
+      client_secret: GG.secret || '',
+      ...params
+    })
   });
   const j = await r.json().catch(()=>({}));
-  if(!r.ok) throw new Error(j.error_description || j.error || ('HTTP ' + r.status));
+  if(!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
   GG.access  = j.access_token || '';
   if(j.refresh_token) GG.refresh = j.refresh_token;
   GG.expires = Date.now() + ((j.expires_in || 3600) - 120) * 1000;
+  ggLastError = ''; store.set('jv_gg_err', '');
   ggPersist();
   return j;
 }
 
 async function ggHandleRedirect(){
-  if(sessionStorage.getItem('jv_oauth') !== 'gg') return false;
   const p = new URLSearchParams(location.search);
   const code = p.get('code'), err = p.get('error'), state = p.get('state');
+  const pending = ggOauthLoad();
+  const isGg = (pending && pending.state) || (state && String(state).startsWith('gg.'));
+  if(!isGg) return false;
   if(!code && !err) return false;
+
   const clean = () => {
-    sessionStorage.removeItem('jv_oauth');
+    ggOauthStore(null);
     history.replaceState({}, '', ggRedirect());
   };
+
   if(err){
+    ggLastError = (p.get('error_description') || err || 'sign-in failed').slice(0,140);
+    store.set('jv_gg_err', ggLastError);
     clean();
+    fillGmailPane();
     toast('GOOGLE SIGN-IN FAILED');
-    setGgStatus((p.get('error_description')||err).slice(0,90));
-    fillGmailPane();
     return false;
   }
-  const verifier = sessionStorage.getItem('jv_gg_pkce');
-  const expect = sessionStorage.getItem('jv_gg_state');
-  sessionStorage.removeItem('jv_gg_pkce'); sessionStorage.removeItem('jv_gg_state');
+
+  const verifier = pending && pending.verifier;
+  const expect = pending && pending.state;
+  const redirectUri = (pending && pending.redirectUri) || ggRedirect();
   if(!verifier || !expect || state !== expect){
+    ggLastError = 'Sign-in session lost — tap CONNECT GOOGLE again';
+    store.set('jv_gg_err', ggLastError);
     clean();
-    toast('GOOGLE SIGN-IN EXPIRED — TRY AGAIN');
     fillGmailPane();
+    toast('GOOGLE SIGN-IN EXPIRED — TRY AGAIN');
     return false;
   }
+
   try{
-    /* Exchange while ?code= is still on the URL; redirect_uri must match auth request. */
-    const redirectUri = ggRedirect();
+    setGgStatus('FINISHING GOOGLE…');
     await ggTokenRequest({
       grant_type:'authorization_code', code, redirect_uri: redirectUri,
       code_verifier: verifier
@@ -1664,15 +1682,15 @@ async function ggHandleRedirect(){
     if(SYNC.enabled && cryptoKey) await pushState({ preferLocal:true });
     else schedulePush();
     fillGmailPane();
-    setGgStatus(GG.email ? ('CONNECTED · ' + GG.email) : 'CONNECTED');
     toast(GG.refresh ? 'GOOGLE CONNECTED' : 'GOOGLE CONNECTED · RECONNECT LATER IF IT DROPS');
     refreshGoogleToday();
     return true;
   }catch(e){
+    ggLastError = String(e && e.message ? e.message : e).slice(0,140);
+    store.set('jv_gg_err', ggLastError);
     clean();
-    setGgStatus(String(e.message).slice(0,90));
     fillGmailPane();
-    toast('GOOGLE TOKEN EXCHANGE FAILED');
+    toast('GOOGLE TOKEN FAILED — SEE STATUS');
     return false;
   }
 }
@@ -1817,17 +1835,30 @@ function fillGmailPane(){
   $('f-gg-client').value = GG.clientId || '';
   $('f-gg-secret').value = GG.secret || '';
   $('f-gg-redirect').value = ggRedirect();
-  setGgStatus(ggConnected() ? (GG.email ? ('CONNECTED · ' + GG.email) : 'CONNECTED') : ggConfigured() ? 'NOT CONNECTED' : 'NOT CONFIGURED');
+  if(ggConnected()){
+    setGgStatus(GG.email ? ('CONNECTED · ' + GG.email) : 'CONNECTED');
+  } else if(ggLastError){
+    setGgStatus('ERROR · ' + ggLastError);
+  } else if(ggConfigured() && GG.secret){
+    setGgStatus('NOT CONNECTED');
+  } else if(ggConfigured()){
+    setGgStatus('NEED CLIENT SECRET');
+  } else {
+    setGgStatus('NOT CONFIGURED');
+  }
 }
 $('btn-gg-save').onclick = () => {
   GG.clientId = $('f-gg-client').value.trim();
   GG.secret = $('f-gg-secret').value.trim();
+  ggLastError = ''; store.set('jv_gg_err', '');
   ggPersist(); fillGmailPane(); toast('GOOGLE SETTINGS SAVED');
 };
 $('btn-gg-connect').onclick = () => {
   GG.clientId = $('f-gg-client').value.trim();
   GG.secret = $('f-gg-secret').value.trim();
-  ggPersist(); ggBeginAuth();
+  ggPersist();
+  fillGmailPane();
+  ggBeginAuth();
 };
 $('btn-gg-off').onclick = () => {
   GG = { clientId: GG.clientId, secret: GG.secret, access:'', refresh:'', expires:0, email:'' };
