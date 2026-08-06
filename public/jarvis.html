@@ -325,7 +325,7 @@ input:focus{border-color:var(--cyan)}
       <div id="greeting">GOOD EVENING</div>
       <div id="sysline">ALL SYSTEMS NOMINAL</div>
       <div id="sync-ind"></div>
-      <div id="build-ind">BUILD 2026.08.06-autosync</div>
+      <div id="build-ind">BUILD 2026.08.06-ggoauth</div>
     </div>
     <div class="reactor" id="reactor" title="Tap for spoken briefing">
       <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="core"></div>
@@ -498,7 +498,7 @@ input:focus{border-color:var(--cyan)}
     <div class="pane" id="pane-gmail">
       <div class="hint">One Google connect for <b>Calendar + Gmail</b>. With SYNC on, tokens travel in your encrypted vault to other devices (still connect Google once first). Add MidValley into Google Calendar so JARVIS only needs this.</div>
       <div class="frow"><label>CLIENT ID</label><input type="text" id="f-gg-client" placeholder="Google OAuth Client ID (...apps.googleusercontent.com)" style="flex:1"></div>
-      <div class="frow"><label>SECRET</label><input type="password" id="f-gg-secret" placeholder="Client secret (from Google Cloud)" style="flex:1"></div>
+      <div class="frow"><label>SECRET</label><input type="password" id="f-gg-secret" placeholder="Leave blank (browser PKCE)" style="flex:1"></div>
       <div class="frow"><label>REDIRECT</label><input type="text" id="f-gg-redirect" readonly style="flex:1"></div>
       <div class="hint" style="margin-top:2px">Enable <b>Google Calendar API</b> and <b>Gmail API</b>. Consent screen: External + add yourself as a test user. Redirect URI must match exactly.</div>
       <div class="frow" style="margin-top:10px">
@@ -526,7 +526,7 @@ input:focus{border-color:var(--cyan)}
   <div id="asst-head">
     <h3>J.A.R.V.I.S</h3>
     <span id="asst-state">READY</span>
-    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.06-autosync</span>
+    <span id="asst-build" style="font-size:8px;letter-spacing:.12em;color:var(--ink3)">2026.08.06-ggoauth</span>
     <button id="asst-close">CLOSE ✕</button>
   </div>
   <div id="asst-log"></div>
@@ -1120,25 +1120,40 @@ function applySyncedSecrets(remote){
     got.chat = true;
   }
   if(remote.google && (remote.google.refresh || remote.google.access || remote.google.clientId)){
-    GG = {
-      clientId: remote.google.clientId || GG.clientId || '',
-      secret: remote.google.secret || GG.secret || '',
-      access: remote.google.access || '',
-      refresh: remote.google.refresh || '',
-      expires: remote.google.expires || 0,
-      email: remote.google.email || ''
-    };
+    const remoteHas = !!(remote.google.refresh || remote.google.access);
+    const localHas = !!(GG.refresh || GG.access);
+    /* Never let an empty vault wipe a just-completed Google sign-in. */
+    if(remoteHas || !localHas){
+      GG = {
+        clientId: remote.google.clientId || GG.clientId || '',
+        secret: remote.google.secret || GG.secret || '',
+        access: remote.google.access || '',
+        refresh: remote.google.refresh || '',
+        expires: remote.google.expires || 0,
+        email: remote.google.email || GG.email || ''
+      };
+    } else {
+      GG.clientId = GG.clientId || remote.google.clientId || '';
+      GG.secret = GG.secret || remote.google.secret || '';
+    }
     store.set('jv_gg', GG);
     got.google = !!(GG.refresh || GG.access);
   }
   if(remote.outlook && (remote.outlook.refresh || remote.outlook.access || remote.outlook.clientId)){
-    MS = {
-      clientId: remote.outlook.clientId || MS.clientId || '',
-      tenantId: remote.outlook.tenantId || MS.tenantId || '',
-      access: remote.outlook.access || '',
-      refresh: remote.outlook.refresh || '',
-      expires: remote.outlook.expires || 0
-    };
+    const remoteHas = !!(remote.outlook.refresh || remote.outlook.access);
+    const localHas = !!(MS.refresh || MS.access);
+    if(remoteHas || !localHas){
+      MS = {
+        clientId: remote.outlook.clientId || MS.clientId || '',
+        tenantId: remote.outlook.tenantId || MS.tenantId || '',
+        access: remote.outlook.access || '',
+        refresh: remote.outlook.refresh || '',
+        expires: remote.outlook.expires || 0
+      };
+    } else {
+      MS.clientId = MS.clientId || remote.outlook.clientId || '';
+      MS.tenantId = MS.tenantId || remote.outlook.tenantId || '';
+    }
     store.set('jv_ms', MS);
     got.outlook = !!(MS.refresh || MS.access);
   }
@@ -1559,12 +1574,13 @@ let GG = store.get('jv_gg', { clientId:'', secret:'', access:'', refresh:'', exp
 let gcalToday = [];
 
 const ggConfigured = () => !!GG.clientId;
-const ggConnected  = () => !!(ggConfigured() && GG.refresh);
+const ggConnected  = () => !!(ggConfigured() && (GG.refresh || GG.access));
 function ggPersist(){ store.set('jv_gg', GG); schedulePush(); }
 function setGgStatus(txt){ const el = $('gg-status'); if(el) el.textContent = txt; }
 function ggTokenBody(params){
   const body = { client_id: GG.clientId, ...params };
-  if(GG.secret) body.client_secret = GG.secret;
+  /* Browser PKCE: omit secret. Sending a web-client secret from the browser
+     often makes Google accept login then fail/ignore the token exchange. */
   return body;
 }
 
@@ -1599,36 +1615,72 @@ async function ggTokenRequest(params){
 }
 
 async function ggHandleRedirect(){
-  if(sessionStorage.getItem('jv_oauth') !== 'gg') return;
+  if(sessionStorage.getItem('jv_oauth') !== 'gg') return false;
   const p = new URLSearchParams(location.search);
   const code = p.get('code'), err = p.get('error'), state = p.get('state');
-  if(!code && !err) return;
-  const clean = () => { sessionStorage.removeItem('jv_oauth'); history.replaceState({}, '', ggRedirect()); };
-  if(err){ clean(); toast('GOOGLE SIGN-IN FAILED'); setGgStatus((p.get('error_description')||err).slice(0,90)); return; }
+  if(!code && !err) return false;
+  const clean = () => {
+    sessionStorage.removeItem('jv_oauth');
+    history.replaceState({}, '', ggRedirect());
+  };
+  if(err){
+    clean();
+    toast('GOOGLE SIGN-IN FAILED');
+    setGgStatus((p.get('error_description')||err).slice(0,90));
+    fillGmailPane();
+    return false;
+  }
   const verifier = sessionStorage.getItem('jv_gg_pkce');
   const expect = sessionStorage.getItem('jv_gg_state');
   sessionStorage.removeItem('jv_gg_pkce'); sessionStorage.removeItem('jv_gg_state');
-  clean();
-  if(!verifier || !expect || state !== expect){ toast('GOOGLE SIGN-IN EXPIRED — TRY AGAIN'); return; }
+  if(!verifier || !expect || state !== expect){
+    clean();
+    toast('GOOGLE SIGN-IN EXPIRED — TRY AGAIN');
+    fillGmailPane();
+    return false;
+  }
   try{
+    /* Exchange while ?code= is still on the URL; redirect_uri must match auth request. */
+    const redirectUri = ggRedirect();
     await ggTokenRequest({
-      grant_type:'authorization_code', code, redirect_uri: ggRedirect(),
+      grant_type:'authorization_code', code, redirect_uri: redirectUri,
       code_verifier: verifier
     });
+    clean();
+    if(!GG.refresh && !GG.access) throw new Error('Google returned no tokens');
     try{
       const me = await gmailApi('/gmail/v1/users/me/profile');
       GG.email = me.emailAddress || '';
       ggPersist();
-    }catch(_){}
+    }catch(_){
+      try{
+        const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+          headers:{ Authorization:'Bearer '+GG.access }
+        });
+        const u = await r.json().catch(()=>({}));
+        if(u.email){ GG.email = u.email; ggPersist(); }
+      }catch(__){}
+    }
+    if(SYNC.enabled && cryptoKey) await pushState({ preferLocal:true });
+    else schedulePush();
+    fillGmailPane();
     setGgStatus(GG.email ? ('CONNECTED · ' + GG.email) : 'CONNECTED');
-    toast('GOOGLE CONNECTED');
+    toast(GG.refresh ? 'GOOGLE CONNECTED' : 'GOOGLE CONNECTED · RECONNECT LATER IF IT DROPS');
     refreshGoogleToday();
-  }catch(e){ setGgStatus(String(e.message).slice(0,90)); toast('GOOGLE TOKEN EXCHANGE FAILED'); }
+    return true;
+  }catch(e){
+    clean();
+    setGgStatus(String(e.message).slice(0,90));
+    fillGmailPane();
+    toast('GOOGLE TOKEN EXCHANGE FAILED');
+    return false;
+  }
 }
 
 async function ggToken(){
-  if(!ggConnected()) throw new Error('Google is not connected.');
+  if(!GG.refresh && !(GG.access && Date.now() < GG.expires)) throw new Error('Google is not connected.');
   if(GG.access && Date.now() < GG.expires) return GG.access;
+  if(!GG.refresh) throw new Error('Google session expired — connect again.');
   await ggTokenRequest({ grant_type:'refresh_token', refresh_token: GG.refresh });
   if(!GG.access) throw new Error('Could not refresh the Google session.');
   return GG.access;
@@ -2132,15 +2184,18 @@ $('asst-close').onclick = () => { $('asst').classList.remove('on'); $('asst-fab'
 function renderAll(){ tickClock(); renderSchedule(); renderMeds(); renderWorkout(); renderCounts(); renderQuote(); renderOutlookToday(); }
 renderAll();
 fetchWeather();
-initSync();
+/* Finish Google/Outlook return BEFORE vault pull, or sync can wipe new tokens. */
 Promise.resolve()
   .then(msHandleRedirect)
   .then(ggHandleRedirect)
-  .then(() => refreshOutlookToday());
+  .then(() => initSync())
+  .then(() => { refreshOutlookToday(); refreshGoogleToday(); fillGmailPane(); });
 setInterval(tickClock, 1000);
 setInterval(()=>{ renderSchedule(); renderMeds(); }, 60*1000);
-setInterval(() => { refreshOutlookToday(); }, 10*60*1000);
-document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') refreshOutlookToday(); });
+setInterval(() => { refreshOutlookToday(); refreshGoogleToday(); }, 10*60*1000);
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible'){ refreshOutlookToday(); refreshGoogleToday(); }
+});
 if('speechSynthesis' in window){ speechSynthesis.getVoices(); }
 boot();
 </script>
