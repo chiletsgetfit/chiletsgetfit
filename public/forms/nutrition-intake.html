@@ -696,7 +696,6 @@
       if (state.step === TOTAL) { showToast('You can close this page'); return; }
       showStep(state.step + 1);
     });
-    showStep(state.step || 1);
 
     /* ---------- summary ---------- */
     const SECTIONS = [
@@ -773,6 +772,10 @@
       const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
       setTimeout(() => t.classList.remove('show'), 1800);
     }
+
+    // Init last: a returning client may land on the review step, which needs
+    // everything above (SECTIONS, buildSummary, handlers) to already exist.
+    showStep(state.step || 1);
   </script>
 </body>
 </html>
