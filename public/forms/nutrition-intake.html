@@ -180,20 +180,20 @@
     <h1>Let&rsquo;s build a plan you&rsquo;ll actually follow</h1>
     <p class="intro">
       The more honest and specific you are here, the better your plan fits your
-      real life. Takes about 10 minutes. Your answers save on this device as you
-      go, so you can finish later.
+      real life. About 6 minutes. Your answers save on this device as you go, so
+      you can finish later.
     </p>
 
     <div class="progress">
-      <div class="progress-meta"><span id="stepLabel">Step 1 of 12</span><span id="stepName">About you</span></div>
+      <div class="progress-meta"><span id="stepLabel">Step 1 of 11</span><span id="stepName">About you</span></div>
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
     </div>
 
     <form id="intake" novalidate>
 
-      <!-- 1 ABOUT YOU -->
+      <!-- 1 ABOUT YOU & GOAL -->
       <section class="step active" data-step="1" data-name="About you">
-        <h2 class="step-title">About you</h2>
+        <h2 class="step-title">About you &amp; your goal</h2>
         <p class="step-help">The basics I need to set calories and protein targets.</p>
         <div class="card">
           <label class="field"><span class="field-label">Your name</span><input type="text" name="name" autocomplete="name" required /></label>
@@ -214,31 +214,9 @@
               <label class="choice"><input type="radio" name="activity" value="Physical job / very active" /><span>Physical job / very active</span></label>
             </div>
           </label>
-          <label class="field"><span class="field-label">Training days per week</span>
-            <div class="choices">
-              <label class="choice"><input type="radio" name="training_days" value="1-2" /><span>1–2</span></label>
-              <label class="choice"><input type="radio" name="training_days" value="3" /><span>3</span></label>
-              <label class="choice"><input type="radio" name="training_days" value="4" /><span>4</span></label>
-              <label class="choice"><input type="radio" name="training_days" value="5" /><span>5</span></label>
-              <label class="choice"><input type="radio" name="training_days" value="6+" /><span>6+</span></label>
-            </div>
-          </label>
-          <label class="field"><span class="field-label">Daily steps (rough guess)</span>
-            <div class="choices">
-              <label class="choice"><input type="radio" name="steps" value="Under 5k" /><span>Under 5k</span></label>
-              <label class="choice"><input type="radio" name="steps" value="5-8k" /><span>5–8k</span></label>
-              <label class="choice"><input type="radio" name="steps" value="8-12k" /><span>8–12k</span></label>
-              <label class="choice"><input type="radio" name="steps" value="12k+" /><span>12k+</span></label>
-            </div>
-          </label>
         </div>
-      </section>
-
-      <!-- 2 GOAL -->
-      <section class="step" data-step="2" data-name="Your goal">
-        <h2 class="step-title">Your goal</h2>
-        <p class="step-help">What are we actually trying to do here?</p>
         <div class="card">
+          <h3>Goal</h3>
           <label class="field"><span class="field-label">Primary goal</span>
             <div class="choices">
               <label class="choice"><input type="radio" name="goal" value="Lose fat" /><span>Lose fat</span></label>
@@ -249,14 +227,7 @@
             </div>
           </label>
           <label class="field"><span class="field-label">Goal weight (if you have one)</span><input type="text" name="goal_weight" placeholder="e.g. 170 lb, or 'not focused on scale'" /></label>
-          <label class="field"><span class="field-label">Any deadline or event?</span><span class="field-hint">Wedding, vacation, competition, photoshoot, "summer"…</span><input type="text" name="deadline" /></label>
-          <label class="field"><span class="field-label">How aggressive do you want this?</span>
-            <div class="choices">
-              <label class="choice"><input type="radio" name="pace" value="Slow & sustainable" /><span>Slow &amp; sustainable</span></label>
-              <label class="choice"><input type="radio" name="pace" value="Moderate" /><span>Moderate</span></label>
-              <label class="choice"><input type="radio" name="pace" value="Aggressive, I'm all in" /><span>Aggressive, I&rsquo;m all in</span></label>
-            </div>
-          </label>
+          <label class="field"><span class="field-label">Any deadline or event?</span><span class="field-hint">Wedding, vacation, competition, "summer"…</span><input type="text" name="deadline" /></label>
           <label class="field"><span class="field-label">How do you want the plan structured?</span>
             <div class="choices">
               <label class="choice"><input type="radio" name="structure" value="Exact meals, tell me what to eat" /><span>Exact meals — tell me what to eat</span></label>
@@ -267,16 +238,12 @@
         </div>
       </section>
 
-      <!-- 3 YOUR DAY -->
-      <section class="step" data-step="3" data-name="Your day">
+      <!-- 2 YOUR DAY -->
+      <section class="step" data-step="2" data-name="Your day">
         <h2 class="step-title">Your day &amp; schedule</h2>
         <p class="step-help">A plan that ignores your schedule is a plan you&rsquo;ll quit.</p>
         <div class="card">
           <h3>Timing</h3>
-          <div class="row2">
-            <label class="field"><span class="field-label">Wake up</span><input type="time" name="wake" /></label>
-            <label class="field"><span class="field-label">Bed time</span><input type="time" name="bed" /></label>
-          </div>
           <div class="row2">
             <label class="field"><span class="field-label">First meal</span><input type="time" name="first_meal" /></label>
             <label class="field"><span class="field-label">Last meal</span><input type="time" name="last_meal" /></label>
@@ -316,13 +283,6 @@
               <label class="choice"><input type="radio" name="cook_time" value="I enjoy cooking, time isn't an issue" /><span>I enjoy cooking</span></label>
             </div>
           </label>
-          <label class="field"><span class="field-label">Cooking skill</span>
-            <div class="choices">
-              <label class="choice"><input type="radio" name="cook_skill" value="Microwave & air fryer only" /><span>Microwave &amp; air fryer</span></label>
-              <label class="choice"><input type="radio" name="cook_skill" value="Basic (can grill chicken, cook rice)" /><span>Basic</span></label>
-              <label class="choice"><input type="radio" name="cook_skill" value="Confident" /><span>Confident</span></label>
-            </div>
-          </label>
           <label class="field"><span class="field-label">Would you meal prep in batches (e.g. Sunday)?</span>
             <div class="choices">
               <label class="choice"><input type="radio" name="meal_prep" value="Yes, happily" /><span>Yes, happily</span></label>
@@ -330,36 +290,16 @@
               <label class="choice"><input type="radio" name="meal_prep" value="No, I need to cook fresh daily" /><span>No, cook fresh daily</span></label>
             </div>
           </label>
-          <label class="field"><span class="field-label">Kitchen gear you have</span>
-            <div class="choices">
-              <label class="choice"><input type="checkbox" name="gear" value="Air fryer" /><span>Air fryer</span></label>
-              <label class="choice"><input type="checkbox" name="gear" value="Instant Pot / slow cooker" /><span>Instant Pot / slow cooker</span></label>
-              <label class="choice"><input type="checkbox" name="gear" value="Blender" /><span>Blender</span></label>
-              <label class="choice"><input type="checkbox" name="gear" value="Food scale" /><span>Food scale</span></label>
-              <label class="choice"><input type="checkbox" name="gear" value="Grill" /><span>Grill</span></label>
-              <label class="choice"><input type="checkbox" name="gear" value="Rice cooker" /><span>Rice cooker</span></label>
-            </div>
-          </label>
           <label class="field"><span class="field-label">Who else are you cooking for?</span><span class="field-hint">Partner, kids, roommates — do they eat the same food?</span><input type="text" name="household" /></label>
         </div>
         <div class="card">
-          <h3>Shopping &amp; eating out</h3>
+          <h3>Budget &amp; eating out</h3>
           <label class="field"><span class="field-label">Weekly grocery budget</span>
             <div class="choices">
               <label class="choice"><input type="radio" name="budget" value="Tight (<$75)" /><span>Tight (&lt;$75)</span></label>
               <label class="choice"><input type="radio" name="budget" value="$75-150" /><span>$75–150</span></label>
               <label class="choice"><input type="radio" name="budget" value="$150-250" /><span>$150–250</span></label>
               <label class="choice"><input type="radio" name="budget" value="Not a constraint" /><span>Not a constraint</span></label>
-            </div>
-          </label>
-          <label class="field"><span class="field-label">Where do you shop?</span>
-            <div class="choices">
-              <label class="choice"><input type="checkbox" name="stores" value="Costco / Sam's" /><span>Costco / Sam&rsquo;s</span></label>
-              <label class="choice"><input type="checkbox" name="stores" value="Trader Joe's" /><span>Trader Joe&rsquo;s</span></label>
-              <label class="choice"><input type="checkbox" name="stores" value="Walmart / Target" /><span>Walmart / Target</span></label>
-              <label class="choice"><input type="checkbox" name="stores" value="Whole Foods / Sprouts" /><span>Whole Foods / Sprouts</span></label>
-              <label class="choice"><input type="checkbox" name="stores" value="Regular supermarket" /><span>Regular supermarket</span></label>
-              <label class="choice"><input type="checkbox" name="stores" value="Grocery delivery" /><span>Delivery (Instacart etc.)</span></label>
             </div>
           </label>
           <label class="field"><span class="field-label">Meals eaten out / takeout per week</span>
@@ -374,8 +314,8 @@
         </div>
       </section>
 
-      <!-- 4 PROTEIN -->
-      <section class="step" data-step="4" data-name="Proteins">
+      <!-- 3 PROTEIN -->
+      <section class="step" data-step="3" data-name="Proteins">
         <h2 class="step-title">Protein sources</h2>
         <p class="step-help">Tap to rate each one. Leave blank if you&rsquo;ve never had it.</p>
         <div class="card">
@@ -383,21 +323,12 @@
           <div class="quick-actions"><button type="button" data-mark-all="ok" data-group="protein">Mark all &ldquo;fine&rdquo;</button><button type="button" data-clear="protein">Clear</button></div>
           <div class="food-list" data-group="protein"></div>
           <div class="add-more"><input type="text" name="protein_other" placeholder="Other proteins you like (comma separated)" /></div>
-        </div>
-        <div class="card">
           <label class="field"><span class="field-label">Protein powder — brand &amp; flavor you like (if any)</span><input type="text" name="protein_powder" placeholder="e.g. Ghost chocolate, Orgain vanilla, none" /></label>
-          <label class="field"><span class="field-label">Do you eat red meat?</span>
-            <div class="choices">
-              <label class="choice"><input type="radio" name="red_meat" value="Yes, regularly" /><span>Yes, regularly</span></label>
-              <label class="choice"><input type="radio" name="red_meat" value="Sometimes" /><span>Sometimes</span></label>
-              <label class="choice"><input type="radio" name="red_meat" value="Rarely / no" /><span>Rarely / no</span></label>
-            </div>
-          </label>
         </div>
       </section>
 
-      <!-- 5 CARBS -->
-      <section class="step" data-step="5" data-name="Carbs">
+      <!-- 4 CARBS -->
+      <section class="step" data-step="4" data-name="Carbs">
         <h2 class="step-title">Carb sources</h2>
         <p class="step-help">Rice, potatoes, bread, oats — what do you actually reach for?</p>
         <div class="card">
@@ -408,8 +339,8 @@
         </div>
       </section>
 
-      <!-- 6 VEG -->
-      <section class="step" data-step="6" data-name="Vegetables">
+      <!-- 5 VEG -->
+      <section class="step" data-step="5" data-name="Vegetables">
         <h2 class="step-title">Vegetables</h2>
         <p class="step-help">Be honest — I&rsquo;d rather build around 5 veggies you&rsquo;ll eat than 20 you won&rsquo;t.</p>
         <div class="card">
@@ -424,17 +355,11 @@
               <label class="choice"><input type="radio" name="veg_prep" value="Either" /><span>Either</span></label>
             </div>
           </label>
-          <label class="field"><span class="field-label">Frozen veggies OK?</span>
-            <div class="choices">
-              <label class="choice"><input type="radio" name="veg_frozen" value="Yes" /><span>Yes</span></label>
-              <label class="choice"><input type="radio" name="veg_frozen" value="Prefer fresh" /><span>Prefer fresh</span></label>
-            </div>
-          </label>
         </div>
       </section>
 
-      <!-- 7 FRUIT -->
-      <section class="step" data-step="7" data-name="Fruits">
+      <!-- 6 FRUIT -->
+      <section class="step" data-step="6" data-name="Fruits">
         <h2 class="step-title">Fruits</h2>
         <p class="step-help">Great for snacks and pre-workout. What do you like?</p>
         <div class="card">
@@ -445,8 +370,8 @@
         </div>
       </section>
 
-      <!-- 8 FATS / DAIRY / EXTRAS -->
-      <section class="step" data-step="8" data-name="Fats & extras">
+      <!-- 7 FATS / DAIRY / EXTRAS -->
+      <section class="step" data-step="7" data-name="Fats & extras">
         <h2 class="step-title">Fats, dairy &amp; extras</h2>
         <p class="step-help">The stuff that makes food taste good. Also where hidden calories live.</p>
         <div class="card">
@@ -454,19 +379,11 @@
           <div class="quick-actions"><button type="button" data-mark-all="ok" data-group="fats">Mark all &ldquo;fine&rdquo;</button><button type="button" data-clear="fats">Clear</button></div>
           <div class="food-list" data-group="fats"></div>
           <div class="add-more"><input type="text" name="fats_other" placeholder="Sauces, dressings, condiments you use a lot" /></div>
-          <label class="field"><span class="field-label">Dairy</span>
-            <div class="choices">
-              <label class="choice"><input type="radio" name="dairy" value="Eat it freely" /><span>Eat it freely</span></label>
-              <label class="choice"><input type="radio" name="dairy" value="Some bothers me" /><span>Some bothers me</span></label>
-              <label class="choice"><input type="radio" name="dairy" value="Lactose-free only" /><span>Lactose-free only</span></label>
-              <label class="choice"><input type="radio" name="dairy" value="Avoid dairy" /><span>Avoid dairy</span></label>
-            </div>
-          </label>
         </div>
       </section>
 
-      <!-- 9 DRINKS & MUST-KEEPS -->
-      <section class="step" data-step="9" data-name="Drinks & must-keeps">
+      <!-- 8 DRINKS & MUST-KEEPS -->
+      <section class="step" data-step="8" data-name="Drinks & must-keeps">
         <h2 class="step-title">Drinks &amp; non-negotiables</h2>
         <p class="step-help">I&rsquo;m not going to take away your coffee. Tell me what stays.</p>
         <div class="card">
@@ -480,7 +397,15 @@
             </div>
           </label>
           <label class="field"><span class="field-label">What goes in your coffee?</span><input type="text" name="coffee_add" placeholder="Black / cream + sugar / oat milk / flavored creamer…" /></label>
-          <label class="field"><span class="field-label">Soda / energy drinks per week</span><input type="text" name="soda" placeholder="e.g. 1 Diet Coke a day, Celsius before workouts" /></label>
+          <label class="field"><span class="field-label">Soda</span>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="soda" value="None" /><span>None</span></label>
+              <label class="choice"><input type="radio" name="soda" value="Diet soda" /><span>Diet soda</span></label>
+              <label class="choice"><input type="radio" name="soda" value="Regular soda" /><span>Regular soda</span></label>
+              <label class="choice"><input type="radio" name="soda" value="Both" /><span>Both</span></label>
+            </div>
+          </label>
+          <label class="field"><span class="field-label">How many, and any energy drinks?</span><input type="text" name="soda_detail" placeholder="e.g. 1 Diet Coke a day, Celsius before workouts" /></label>
           <label class="field"><span class="field-label">Alcohol per week</span>
             <div class="choices">
               <label class="choice"><input type="radio" name="alcohol" value="None" /><span>None</span></label>
@@ -490,14 +415,6 @@
             </div>
           </label>
           <label class="field"><span class="field-label">What do you drink, and when?</span><input type="text" name="alcohol_detail" placeholder="e.g. 2 glasses of wine Fri/Sat, beers watching the game" /></label>
-          <label class="field"><span class="field-label">Water per day (rough)</span>
-            <div class="choices">
-              <label class="choice"><input type="radio" name="water" value="Barely any" /><span>Barely any</span></label>
-              <label class="choice"><input type="radio" name="water" value="A few glasses" /><span>A few glasses</span></label>
-              <label class="choice"><input type="radio" name="water" value="Half gallon-ish" /><span>Half gallon-ish</span></label>
-              <label class="choice"><input type="radio" name="water" value="Gallon+" /><span>Gallon+</span></label>
-            </div>
-          </label>
         </div>
         <div class="card">
           <h3>Must-keeps</h3>
@@ -522,8 +439,8 @@
         </div>
       </section>
 
-      <!-- 10 RESTRICTIONS & HEALTH -->
-      <section class="step" data-step="10" data-name="Restrictions & health">
+      <!-- 9 RESTRICTIONS & HEALTH -->
+      <section class="step" data-step="9" data-name="Restrictions & health">
         <h2 class="step-title">Restrictions &amp; health</h2>
         <p class="step-help">Safety first. This is confidential and only I see it.</p>
         <div class="card">
@@ -569,8 +486,8 @@
         </div>
       </section>
 
-      <!-- 11 HISTORY & HABITS -->
-      <section class="step" data-step="11" data-name="History & habits">
+      <!-- 10 HISTORY, HABITS & EXTRAS -->
+      <section class="step" data-step="10" data-name="History & habits">
         <h2 class="step-title">History &amp; habits</h2>
         <p class="step-help">This is the part most coaches skip. It&rsquo;s the part that matters most.</p>
         <div class="card">
@@ -597,13 +514,6 @@
               <label class="choice"><input type="radio" name="hungriest" value="All day" /><span>All day</span></label>
             </div>
           </label>
-          <label class="field"><span class="field-label">Do you currently track food?</span>
-            <div class="choices">
-              <label class="choice"><input type="radio" name="tracking" value="Yes (MyFitnessPal / Cronometer / etc.)" /><span>Yes</span></label>
-              <label class="choice"><input type="radio" name="tracking" value="Used to, stopped" /><span>Used to, stopped</span></label>
-              <label class="choice"><input type="radio" name="tracking" value="Never" /><span>Never</span></label>
-            </div>
-          </label>
           <label class="field"><span class="field-label">Willing to weigh / measure food?</span>
             <div class="choices">
               <label class="choice"><input type="radio" name="weigh_food" value="Yes" /><span>Yes</span></label>
@@ -611,31 +521,10 @@
               <label class="choice"><input type="radio" name="weigh_food" value="No — hand portions please" /><span>No — hand portions please</span></label>
             </div>
           </label>
-          <label class="field"><span class="field-label">Sleep (average hours)</span>
-            <div class="choices">
-              <label class="choice"><input type="radio" name="sleep" value="Under 6" /><span>Under 6</span></label>
-              <label class="choice"><input type="radio" name="sleep" value="6-7" /><span>6–7</span></label>
-              <label class="choice"><input type="radio" name="sleep" value="7-8" /><span>7–8</span></label>
-              <label class="choice"><input type="radio" name="sleep" value="8+" /><span>8+</span></label>
-            </div>
-          </label>
-          <label class="field"><span class="field-label">Stress level lately</span>
-            <div class="choices">
-              <label class="choice"><input type="radio" name="stress" value="Low" /><span>Low</span></label>
-              <label class="choice"><input type="radio" name="stress" value="Moderate" /><span>Moderate</span></label>
-              <label class="choice"><input type="radio" name="stress" value="High" /><span>High</span></label>
-              <label class="choice"><input type="radio" name="stress" value="Through the roof" /><span>Through the roof</span></label>
-            </div>
-          </label>
           <label class="field"><span class="field-label">Anything about your relationship with food I should know?</span><span class="field-hint">Optional. History of restrictive eating, binge cycles, food anxiety — it changes how I build the plan.</span><textarea name="food_relationship"></textarea></label>
         </div>
-      </section>
-
-      <!-- 12 SUPPLEMENTS & EXTRAS -->
-      <section class="step" data-step="12" data-name="Supplements & anything else">
-        <h2 class="step-title">Supplements &amp; anything else</h2>
-        <p class="step-help">Last one. Then review and send.</p>
         <div class="card">
+          <h3>Supplements &amp; anything else</h3>
           <label class="field"><span class="field-label">Currently taking</span>
             <div class="choices">
               <label class="choice"><input type="checkbox" name="supps" value="Protein powder" /><span>Protein powder</span></label>
@@ -655,8 +544,8 @@
         </div>
       </section>
 
-      <!-- 13 REVIEW -->
-      <section class="step" data-step="13" data-name="Review & send">
+      <!-- 11 REVIEW -->
+      <section class="step" data-step="11" data-name="Review & send">
         <h2 class="step-title">Review &amp; send</h2>
         <p class="step-help">Here&rsquo;s everything you told me. Copy it and text or email it to your coach.</p>
         <div class="card">
@@ -698,7 +587,6 @@
       fruit: ['Banana','Apple','Strawberries','Blueberries','Raspberries','Orange / clementine','Grapes','Pineapple','Mango','Watermelon / melon','Peach / nectarine','Pear','Kiwi','Cherries','Avocado','Dried fruit'],
       fats: ['Olive oil','Butter','Avocado / guac','Almonds','Walnuts','Cashews','Peanut butter','Almond butter','Chia / flax seeds','Cheddar / jack cheese','Mozzarella / feta','Cream cheese','Milk (dairy)','Almond / oat milk','Hummus','Ranch / creamy dressings','Vinaigrette','Hot sauce / salsa','Dark chocolate']
     };
-    const RATING_LABELS = { love: '♥ Love', ok: '✓ Fine', no: '✕ No' };
 
     /* ---------- state ---------- */
     let state = { step: 1, ratings: {}, fields: {} };
@@ -812,35 +700,35 @@
 
     /* ---------- summary ---------- */
     const SECTIONS = [
-      ['ABOUT YOU', ['name','age','sex','height','weight','activity','training_days','steps']],
-      ['GOAL', ['goal','goal_weight','deadline','pace','structure']],
-      ['SCHEDULE', ['wake','bed','first_meal','last_meal','train_time','meals_per_day','breakfast']],
-      ['COOKING', ['cook_time','cook_skill','meal_prep','gear','household']],
-      ['SHOPPING & EATING OUT', ['budget','stores','eat_out','restaurants']],
-      ['PROTEIN NOTES', ['protein_other','protein_powder','red_meat']],
+      ['ABOUT YOU', ['name','age','sex','height','weight','activity']],
+      ['GOAL', ['goal','goal_weight','deadline','structure']],
+      ['SCHEDULE', ['first_meal','last_meal','train_time','meals_per_day','breakfast']],
+      ['COOKING', ['cook_time','meal_prep','household']],
+      ['BUDGET & EATING OUT', ['budget','eat_out','restaurants']],
+      ['PROTEIN NOTES', ['protein_other','protein_powder']],
       ['CARB NOTES', ['carbs_other']],
-      ['VEG NOTES', ['veg_other','veg_prep','veg_frozen']],
+      ['VEG NOTES', ['veg_other','veg_prep']],
       ['FRUIT NOTES', ['fruit_other']],
-      ['FATS / DAIRY NOTES', ['fats_other','dairy']],
-      ['DRINKS', ['coffee','coffee_add','soda','alcohol','alcohol_detail','water']],
+      ['FATS / DAIRY NOTES', ['fats_other']],
+      ['DRINKS', ['coffee','coffee_add','soda','soda_detail','alcohol','alcohol_detail']],
       ['MUST-KEEPS', ['must_keep','treats','cravings','everyday_meal']],
       ['RESTRICTIONS & HEALTH', ['pattern','allergies','intolerances','cultural','conditions','medical_other']],
-      ['HISTORY & HABITS', ['diet_history','struggles','hungriest','tracking','weigh_food','sleep','stress','food_relationship']],
+      ['HISTORY & HABITS', ['diet_history','struggles','hungriest','weigh_food','food_relationship']],
       ['SUPPLEMENTS & EXTRAS', ['supps','supps_other','anything_else']],
     ];
     const LABELS = {
-      name:'Name', age:'Age', sex:'Sex', height:'Height', weight:'Weight', activity:'Activity', training_days:'Training days/wk', steps:'Daily steps',
-      goal:'Goal', goal_weight:'Goal weight', deadline:'Deadline/event', pace:'Pace', structure:'Plan structure',
-      wake:'Wake', bed:'Bed', first_meal:'First meal', last_meal:'Last meal', train_time:'Trains', meals_per_day:'Meals/day', breakfast:'Breakfast',
-      cook_time:'Weeknight cook time', cook_skill:'Cooking skill', meal_prep:'Batch prep', gear:'Kitchen gear', household:'Cooking for',
-      budget:'Grocery budget', stores:'Shops at', eat_out:'Eats out/wk', restaurants:'Go-to spots',
-      protein_other:'Other proteins', protein_powder:'Protein powder', red_meat:'Red meat',
-      carbs_other:'Other carbs', veg_other:'Other veg', veg_prep:'Raw vs cooked', veg_frozen:'Frozen OK', fruit_other:'Other fruit',
-      fats_other:'Sauces/condiments', dairy:'Dairy',
-      coffee:'Coffee/day', coffee_add:'In coffee', soda:'Soda/energy', alcohol:'Alcohol/wk', alcohol_detail:'Alcohol detail', water:'Water',
+      name:'Name', age:'Age', sex:'Sex', height:'Height', weight:'Weight', activity:'Activity',
+      goal:'Goal', goal_weight:'Goal weight', deadline:'Deadline/event', structure:'Plan structure',
+      first_meal:'First meal', last_meal:'Last meal', train_time:'Trains', meals_per_day:'Meals/day', breakfast:'Breakfast',
+      cook_time:'Weeknight cook time', meal_prep:'Batch prep', household:'Cooking for',
+      budget:'Grocery budget', eat_out:'Eats out/wk', restaurants:'Go-to spots',
+      protein_other:'Other proteins', protein_powder:'Protein powder',
+      carbs_other:'Other carbs', veg_other:'Other veg', veg_prep:'Raw vs cooked', fruit_other:'Other fruit',
+      fats_other:'Sauces/condiments',
+      coffee:'Coffee/day', coffee_add:'In coffee', soda:'Soda', soda_detail:'Soda/energy detail', alcohol:'Alcohol/wk', alcohol_detail:'Alcohol detail',
       must_keep:'Must-keeps', treats:'Treat meals/wk', cravings:'Cravings', everyday_meal:'Could eat daily',
       pattern:'Dietary pattern', allergies:'Allergies', intolerances:'Intolerances', cultural:'Cultural/religious', conditions:'Conditions', medical_other:'Medical/meds',
-      diet_history:'Diet history', struggles:'Struggles', hungriest:'Hungriest', tracking:'Tracks food', weigh_food:'Weighs food', sleep:'Sleep', stress:'Stress', food_relationship:'Food relationship',
+      diet_history:'Diet history', struggles:'Struggles', hungriest:'Hungriest', weigh_food:'Weighs food', food_relationship:'Food relationship',
       supps:'Supplements', supps_other:'Other supps', anything_else:'Anything else'
     };
     const GROUP_TITLES = { protein:'PROTEINS', carbs:'CARBS', veg:'VEGETABLES', fruit:'FRUITS', fats:'FATS / DAIRY / EXTRAS' };
