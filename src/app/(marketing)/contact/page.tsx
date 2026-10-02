@@ -91,7 +91,6 @@ export default function ContactPage() {
               <ul className="mt-3 space-y-2">
                 <li><a href="https://instagram.com/" className="hover:text-gold-400" target="_blank" rel="noreferrer">Instagram</a></li>
                 <li><a href="https://facebook.com/" className="hover:text-gold-400" target="_blank" rel="noreferrer">Facebook</a></li>
-                <li><a href="https://youtube.com/" className="hover:text-gold-400" target="_blank" rel="noreferrer">YouTube</a></li>
               </ul>
             </div>
             <div>

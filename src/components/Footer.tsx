@@ -4,8 +4,6 @@ import { Container } from "./Container";
 const SOCIALS: { label: string; href: string }[] = [
   { label: "Instagram", href: "https://instagram.com/" },
   { label: "Facebook", href: "https://facebook.com/" },
-  { label: "YouTube", href: "https://youtube.com/" },
-  { label: "LinkedIn", href: "https://linkedin.com/" },
 ];
 
 const SITE_LINKS = [

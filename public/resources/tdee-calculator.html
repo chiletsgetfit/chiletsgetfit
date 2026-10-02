@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+  <title>TDEE Calculator · ChiletsGetFit</title>
+  <meta name="description" content="Estimate your maintenance calories and get starting macro targets for fat loss, maintenance, or muscle gain." />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <style>
+    :root {
+      --gold: #c0a576; --gold-light: #e8d3a6;
+      --bg: #000; --card: #0a0a0a; --border: #1f1f1f; --border-strong: #2a2a2a;
+      --text: #fff; --muted: #a1a1aa; --dim: #71717a;
+      --cut: #60a5fa; --maint: #c0a576; --gain: #4ade80;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--text); }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.5; -webkit-font-smoothing: antialiased; padding: 24px 16px 80px; }
+    .wrap { max-width: 640px; margin: 0 auto; }
+    .brand { display: inline-flex; align-items: center; margin-bottom: 20px; }
+    .brand img { height: 48px; width: auto; }
+    .pill { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--gold); background: rgba(192,165,118,.08); border: 1px solid rgba(192,165,118,.4); padding: 6px 12px; border-radius: 999px; margin-bottom: 8px; }
+    h1 { font-size: clamp(26px, 5vw, 34px); line-height: 1.15; font-weight: 700; letter-spacing: -.01em; }
+    .intro { margin-top: 10px; color: var(--muted); font-size: 15px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 18px; margin-top: 16px; }
+    .card h2 { font-size: 13px; letter-spacing: .25em; text-transform: uppercase; color: var(--gold); font-weight: 600; margin-bottom: 12px; }
+    label.field { display: block; margin-top: 14px; }
+    label.field:first-of-type { margin-top: 0; }
+    .field-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .field-hint { display: block; font-size: 12px; color: var(--dim); margin-bottom: 6px; }
+    input[type=number], select { width: 100%; background: #000; border: 1px solid var(--border-strong); border-radius: 12px; color: var(--text); font: inherit; font-size: 16px; padding: 12px 14px; outline: none; }
+    input:focus, select:focus { border-color: var(--gold); }
+    select { -webkit-appearance: none; appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--dim) 50%), linear-gradient(135deg, var(--dim) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 36px; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    @media (max-width: 420px) { .row2, .row3 { grid-template-columns: 1fr; } }
+    .choices { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .choice { position: relative; }
+    .choice input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .choice span { display: inline-block; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--border-strong); background: #000; color: var(--muted); font-size: 14px; cursor: pointer; user-select: none; transition: all .12s ease; }
+    .choice input:checked + span { border-color: var(--gold); background: rgba(192,165,118,.14); color: var(--gold-light); font-weight: 600; }
+    .choice input:focus-visible + span { outline: 2px solid var(--gold); outline-offset: 2px; }
+    .units { display: flex; gap: 0; border: 1px solid var(--border-strong); border-radius: 999px; overflow: hidden; width: max-content; margin-bottom: 14px; }
+    .units label { position: relative; }
+    .units input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .units span { display: inline-block; padding: 8px 16px; font-size: 12px; letter-spacing: .15em; text-transform: uppercase; font-weight: 700; color: var(--dim); cursor: pointer; }
+    .units input:checked + span { background: var(--gold); color: #000; }
+    .hidden { display: none !important; }
+
+    /* results */
+    .results { margin-top: 16px; }
+    .big { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 420px) { .big { grid-template-columns: 1fr; } }
+    .stat { background: #050505; border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+    .stat .k { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); font-weight: 600; }
+    .stat .v { font-size: 34px; font-weight: 700; letter-spacing: -.02em; margin-top: 4px; }
+    .stat .v small { font-size: 14px; color: var(--muted); font-weight: 500; letter-spacing: 0; margin-left: 4px; }
+    .stat .sub { font-size: 12px; color: var(--dim); margin-top: 2px; }
+    .goal { border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-top: 10px; background: #050505; }
+    .goal-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .goal-name { font-size: 15px; font-weight: 700; }
+    .goal-cals { font-size: 22px; font-weight: 700; }
+    .goal-cals small { font-size: 12px; color: var(--muted); font-weight: 500; margin-left: 3px; }
+    .goal-note { font-size: 12.5px; color: var(--dim); margin-top: 2px; }
+    .macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+    .macro { background: #000; border: 1px solid var(--border); border-radius: 10px; padding: 10px; text-align: center; }
+    .macro .mk { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); font-weight: 600; }
+    .macro .mv { font-size: 18px; font-weight: 700; margin-top: 2px; }
+    .macro .mv small { font-size: 11px; color: var(--muted); font-weight: 500; }
+    .goal.cut   { border-color: rgba(96,165,250,.35); }  .goal.cut .goal-cals   { color: var(--cut); }
+    .goal.maint { border-color: rgba(192,165,118,.45); } .goal.maint .goal-cals { color: var(--maint); }
+    .goal.gain  { border-color: rgba(74,222,128,.35); }  .goal.gain .goal-cals  { color: var(--gain); }
+    .placeholder { color: var(--dim); font-size: 14px; text-align: center; padding: 24px 10px; }
+    .btn { font: inherit; font-size: 12px; letter-spacing: .2em; text-transform: uppercase; font-weight: 700; border-radius: 999px; padding: 14px 20px; cursor: pointer; border: 1px solid var(--gold); background: var(--gold); color: #000; width: 100%; margin-top: 14px; transition: all .12s ease; }
+    .btn:hover { background: var(--gold-light); border-color: var(--gold-light); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px); background: var(--gold); color: #000; font-weight: 700; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; padding: 10px 18px; border-radius: 999px; opacity: 0; pointer-events: none; transition: all .2s ease; z-index: 60; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .how { margin-top: 28px; }
+    .how p { color: var(--muted); font-size: 14.5px; margin-top: 10px; }
+    .how strong { color: var(--text); }
+    sup a { color: var(--gold); text-decoration: none; font-weight: 600; font-size: .7em; padding: 0 1px; }
+    .sources ol { padding-left: 24px; }
+    .sources li { color: var(--muted); font-size: 13.5px; line-height: 1.55; margin: 10px 0; padding-left: 6px; }
+    .sources li a { color: var(--gold); text-decoration: none; word-break: break-word; }
+    .sources li a:hover { color: var(--gold-light); text-decoration: underline; }
+    .sources li em { color: var(--dim); font-style: normal; font-size: 12.5px; display: block; margin-top: 2px; }
+    .disclaimer { background: rgba(30,30,30,.6); border: 1px solid var(--border); border-radius: 12px; padding: 16px; font-size: 13px; color: var(--dim); margin-top: 24px; }
+    footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--dim); font-size: 12px; text-align: center; }
+    footer a { color: var(--gold); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a href="/" class="brand" aria-label="ChiletsGetFit home"><img src="/brand/logo.svg" alt="ChiletsGetFit" /></a>
+
+    <span class="pill">Tool · Nutrition</span>
+    <h1>TDEE &amp; macro calculator</h1>
+    <p class="intro">
+      Estimate how many calories you burn in a day (your <strong>TDEE</strong>),
+      then see starting targets for fat loss, maintenance, or muscle gain. Fill it
+      in and the numbers update live. These are a <em>starting point</em> — your
+      coach adjusts them against real-world results after 2–3 weeks.
+    </p>
+
+    <form id="calc" class="card" novalidate>
+      <h2>Your numbers</h2>
+      <div class="units" role="radiogroup" aria-label="Units">
+        <label><input type="radio" name="units" value="us" checked /><span>US (lb · ft/in)</span></label>
+        <label><input type="radio" name="units" value="metric" /><span>Metric (kg · cm)</span></label>
+      </div>
+
+      <label class="field"><span class="field-label">Sex</span>
+        <div class="choices">
+          <label class="choice"><input type="radio" name="sex" value="male" /><span>Male</span></label>
+          <label class="choice"><input type="radio" name="sex" value="female" /><span>Female</span></label>
+        </div>
+      </label>
+
+      <div class="row2">
+        <label class="field"><span class="field-label">Age</span><input type="number" name="age" inputmode="numeric" min="13" max="100" placeholder="years" /></label>
+        <label class="field" data-unit="us"><span class="field-label">Weight</span><input type="number" name="weight_lb" inputmode="decimal" min="60" max="600" step="0.1" placeholder="lb" /></label>
+        <label class="field hidden" data-unit="metric"><span class="field-label">Weight</span><input type="number" name="weight_kg" inputmode="decimal" min="30" max="300" step="0.1" placeholder="kg" /></label>
+      </div>
+
+      <div class="row2" data-unit="us">
+        <label class="field"><span class="field-label">Height (feet)</span><input type="number" name="height_ft" inputmode="numeric" min="3" max="8" placeholder="ft" /></label>
+        <label class="field"><span class="field-label">Height (inches)</span><input type="number" name="height_in" inputmode="decimal" min="0" max="11.9" step="0.5" placeholder="in" /></label>
+      </div>
+      <label class="field hidden" data-unit="metric"><span class="field-label">Height</span><input type="number" name="height_cm" inputmode="decimal" min="100" max="250" step="0.5" placeholder="cm" /></label>
+
+      <label class="field"><span class="field-label">Activity level</span>
+        <span class="field-hint">Count training <em>and</em> your job/daily movement. Most people overestimate — when in doubt pick one lower.</span>
+        <select name="activity">
+          <option value="">Choose…</option>
+          <option value="1.2">Sedentary — desk job, little exercise</option>
+          <option value="1.375">Light — exercise 1–3 days/wk</option>
+          <option value="1.55">Moderate — exercise 3–5 days/wk</option>
+          <option value="1.725">Very active — hard training 6–7 days/wk, or physical job</option>
+          <option value="1.9">Extra active — physical job + daily hard training</option>
+        </select>
+      </label>
+
+      <label class="field"><span class="field-label">Body fat % <span style="color:var(--dim);font-weight:500">(optional)</span></span>
+        <span class="field-hint">If you know it, we&rsquo;ll use the lean-mass formula, which is more accurate for very lean or very muscular people.</span>
+        <input type="number" name="bodyfat" inputmode="decimal" min="3" max="60" step="0.5" placeholder="e.g. 22" />
+      </label>
+    </form>
+
+    <div class="card results" id="results">
+      <h2>Your results</h2>
+      <div id="out"><p class="placeholder">Fill in your sex, age, weight, height, and activity level to see your numbers.</p></div>
+      <button type="button" class="btn" id="copyBtn" disabled>Copy results for my coach</button>
+    </div>
+
+    <section class="how">
+      <div class="card">
+        <h2>How this works</h2>
+        <p>
+          <strong>BMR</strong> (basal metabolic rate) is what you&rsquo;d burn lying in bed all day. We use the
+          <strong>Mifflin-St Jeor</strong> equation<sup><a href="#ref-1">[1]</a></sup>, the most accurate of the common formulas
+          for the general population. If you enter body fat %, we switch to <strong>Katch-McArdle</strong><sup><a href="#ref-2">[2]</a></sup>,
+          which calculates from lean mass instead.
+        </p>
+        <p>
+          <strong>TDEE</strong> = BMR × an activity multiplier (1.2 to 1.9). That&rsquo;s your estimated maintenance — eat
+          that and your weight holds steady.
+        </p>
+        <p>
+          <strong>Goal targets</strong> are TDEE ±20% for a sustainable cut or lean gain<sup><a href="#ref-3">[3]</a></sup>.
+          Roughly ½–1 lb per week either direction, which is the pace that keeps muscle on a cut and keeps fat off a bulk.
+        </p>
+        <p>
+          <strong>Macros:</strong> protein is set at ~1 g per lb of bodyweight (or 1.2 g per lb of lean mass if you gave body
+          fat %) — the upper end of the evidence-based range, which is where you want to be when dieting<sup><a href="#ref-4">[4]</a></sup>.
+          Fat is 25% of calories. Carbs fill the rest and fuel training.
+        </p>
+      </div>
+    </section>
+
+    <section class="card sources">
+      <h2>Sources</h2>
+      <ol>
+        <li id="ref-1">Mifflin MD, St Jeor ST, Hill LA, et al. <strong>A new predictive equation for resting energy expenditure in healthy individuals.</strong> <em>Am J Clin Nutr.</em> 1990;51(2):241-247.
+          <br><a href="https://pubmed.ncbi.nlm.nih.gov/2305711/" target="_blank" rel="noopener">https://pubmed.ncbi.nlm.nih.gov/2305711/</a>
+          <em>The BMR equation used here. Later validation (Frankenfield 2005, ADA) found it the most reliable of the standard equations.</em></li>
+        <li id="ref-2">Katch FI, McArdle WD. <strong>Prediction of body density from simple anthropometric measurements in college-age men and women.</strong> <em>Hum Biol.</em> 1973;45(3):445-455.
+          <br><a href="https://pubmed.ncbi.nlm.nih.gov/4750412/" target="_blank" rel="noopener">https://pubmed.ncbi.nlm.nih.gov/4750412/</a>
+          <em>Origin of the lean-mass-based BMR formula (370 + 21.6 × lean kg) used when body fat % is entered.</em></li>
+        <li id="ref-3">Garthe I, Raastad T, Refsnes PE, Koivisto A, Sundgot-Borgen J. <strong>Effect of two different weight-loss rates on body composition and strength and power-related performance in elite athletes.</strong> <em>Int J Sport Nutr Exerc Metab.</em> 2011;21(2):97-104.
+          <br><a href="https://pubmed.ncbi.nlm.nih.gov/21558571/" target="_blank" rel="noopener">https://pubmed.ncbi.nlm.nih.gov/21558571/</a>
+          <em>Slower (~0.7%/wk) weight loss preserved more lean mass and strength than faster loss — the basis for the ~20% deficit default rather than something harsher.</em></li>
+        <li id="ref-4">Morton RW, Murphy KT, McKellar SR, et al. <strong>A systematic review, meta-analysis and meta-regression of the effect of protein supplementation on resistance training-induced gains in muscle mass and strength.</strong> <em>Br J Sports Med.</em> 2018;52(6):376-384.
+          <br><a href="https://pubmed.ncbi.nlm.nih.gov/28698222/" target="_blank" rel="noopener">https://pubmed.ncbi.nlm.nih.gov/28698222/</a>
+          <em>49-study meta-analysis: gains plateau around 1.6 g/kg (≈0.73 g/lb) with an upper confidence bound near 2.2 g/kg (≈1 g/lb). Dieting lifters benefit from the higher end — see also Helms 2014 (PMID 24092765).</em></li>
+      </ol>
+    </section>
+
+    <div class="disclaimer">
+      <strong>Estimates, not a prescription.</strong> Every formula has a ±10% margin on individuals. The real test is
+      the scale and the mirror over 2–3 weeks at these numbers — your coach adjusts from there. Not medical advice;
+      if you have a medical condition affecting metabolism, talk to your doctor first.
+    </div>
+
+    <footer><p>Built for you by <a href="https://chiletsgetfit.com">ChiletsGetFit</a> · Questions? Message your coach.</p></footer>
+  </div>
+  <div class="toast" id="toast">Copied</div>
+
+  <script>
+    const form = document.getElementById('calc');
+    const out = document.getElementById('out');
+    const copyBtn = document.getElementById('copyBtn');
+    let lastText = '';
+
+    // Unit toggle: show/hide the relevant inputs.
+    function applyUnits() {
+      const u = form.units.value;
+      document.querySelectorAll('[data-unit]').forEach(el => el.classList.toggle('hidden', el.dataset.unit !== u));
+    }
+
+    function num(name) { const v = parseFloat(form[name]?.value); return Number.isFinite(v) ? v : null; }
+    const r10 = n => Math.round(n / 10) * 10;
+    const r5 = n => Math.round(n / 5) * 5;
+
+    function compute() {
+      const sex = form.sex.value;
+      const age = num('age');
+      const act = parseFloat(form.activity.value);
+      const bf = num('bodyfat');
+      const metric = form.units.value === 'metric';
+
+      let kg, cm;
+      if (metric) { kg = num('weight_kg'); cm = num('height_cm'); }
+      else {
+        const lb = num('weight_lb'), ft = num('height_ft'), inch = num('height_in') ?? 0;
+        kg = lb != null ? lb * 0.45359237 : null;
+        cm = ft != null ? (ft * 12 + inch) * 2.54 : null;
+      }
+      if (!sex || age == null || !kg || !cm || !Number.isFinite(act)) return null;
+
+      const lb = kg / 0.45359237;
+      let bmr, method;
+      if (bf != null && bf >= 3 && bf <= 60) {
+        const lean = kg * (1 - bf / 100);
+        bmr = 370 + 21.6 * lean; method = `Katch-McArdle (lean mass ${Math.round(lean / 0.45359237)} lb)`;
+      } else {
+        bmr = 10 * kg + 6.25 * cm - 5 * age + (sex === 'male' ? 5 : -161); method = 'Mifflin-St Jeor';
+      }
+      const tdee = bmr * act;
+
+      // Protein: 1 g/lb bodyweight, or 1.2 g/lb lean mass if BF% given. Fat 25% of calories. Carbs fill.
+      const proteinG = bf != null ? r5(lb * (1 - bf / 100) * 1.2) : r5(lb * 1.0);
+      const goals = [
+        { key: 'cut',   name: 'Fat loss',      cals: r10(tdee * 0.80), note: '−20% · about ½–1 lb/week' },
+        { key: 'maint', name: 'Maintain',      cals: r10(tdee),        note: 'Hold weight, improve food quality' },
+        { key: 'gain',  name: 'Lean gain',     cals: r10(tdee * 1.10), note: '+10% · slow, mostly muscle' },
+      ].map(g => {
+        const fatG = r5(Math.max(g.cals * 0.25 / 9, lb * 0.3));
+        const carbG = Math.max(0, r5((g.cals - proteinG * 4 - fatG * 9) / 4));
+        return { ...g, proteinG, fatG, carbG };
+      });
+
+      return { bmr: Math.round(bmr), tdee: r10(tdee), method, act, goals, lb: Math.round(lb), kg: Math.round(kg * 10) / 10, sex, age, bf };
+    }
+
+    function render() {
+      const r = compute();
+      if (!r) {
+        out.innerHTML = '<p class="placeholder">Fill in your sex, age, weight, height, and activity level to see your numbers.</p>';
+        copyBtn.disabled = true; lastText = ''; return;
+      }
+      const actLabel = form.activity.options[form.activity.selectedIndex].text.split(' — ')[0];
+      out.innerHTML = `
+        <div class="big">
+          <div class="stat"><div class="k">BMR</div><div class="v">${r.bmr.toLocaleString()}<small>kcal</small></div><div class="sub">${r.method}</div></div>
+          <div class="stat"><div class="k">TDEE · maintenance</div><div class="v">${r.tdee.toLocaleString()}<small>kcal</small></div><div class="sub">× ${r.act} (${actLabel})</div></div>
+        </div>
+        ${r.goals.map(g => `
+          <div class="goal ${g.key}">
+            <div class="goal-head"><div><div class="goal-name">${g.name}</div><div class="goal-note">${g.note}</div></div><div class="goal-cals">${g.cals.toLocaleString()}<small>kcal/day</small></div></div>
+            <div class="macros">
+              <div class="macro"><div class="mk">Protein</div><div class="mv">${g.proteinG}<small>g</small></div></div>
+              <div class="macro"><div class="mk">Carbs</div><div class="mv">${g.carbG}<small>g</small></div></div>
+              <div class="macro"><div class="mk">Fat</div><div class="mv">${g.fatG}<small>g</small></div></div>
+            </div>
+          </div>`).join('')}
+      `;
+      copyBtn.disabled = false;
+      lastText = [
+        `TDEE RESULTS — ${new Date().toLocaleDateString()}`,
+        `${r.sex === 'male' ? 'M' : 'F'} · ${r.age}y · ${r.lb} lb (${r.kg} kg)${r.bf != null ? ` · ${r.bf}% BF` : ''}`,
+        `Activity: ${actLabel} (×${r.act})`,
+        `BMR: ${r.bmr} kcal (${r.method})`,
+        `TDEE: ${r.tdee} kcal`,
+        '',
+        ...r.goals.map(g => `${g.name}: ${g.cals} kcal — P ${g.proteinG}g / C ${g.carbG}g / F ${g.fatG}g`),
+      ].join('\n');
+    }
+
+    form.addEventListener('input', render);
+    form.addEventListener('change', e => { if (e.target.name === 'units') applyUnits(); render(); });
+    copyBtn.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(lastText); toast('Copied — paste it to your coach'); }
+      catch (e) { const ta = document.createElement('textarea'); ta.value = lastText; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast('Copied — paste it to your coach'); } catch (_) { toast('Select the text and copy manually'); } ta.remove(); }
+    });
+    function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1800); }
+    applyUnits(); render();
+  </script>
+</body>
+</html>
