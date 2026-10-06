@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { Container } from "./Container";
 
+// `external` items are static files in /public, not app routes — use a plain <a>.
 const NAV = [
   { href: "/about", label: "About" },
   { href: "/services", label: "Services" },
+  { href: "/resources/tdee-calculator.html", label: "TDEE Calculator", external: true },
   { href: "/blog", label: "Blog" },
   { href: "/contact", label: "Contact" },
 ];
@@ -23,19 +25,30 @@ export function Header() {
           <img src="/brand/logo.svg" alt="ChiletsGetFit" className="h-12 w-auto md:h-14" />
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="text-xs uppercase tracking-[0.2em] text-zinc-300 transition-colors hover:text-gold-400"
-            >
-              {item.label}
-            </Link>
-          ))}
+        {/* Five links + sign-in + CTA need ~900px, so the full bar starts at lg; tablets get the drawer. */}
+        <nav className="hidden lg:flex items-center gap-8">
+          {NAV.map((item) =>
+            item.external ? (
+              <a
+                key={item.href}
+                href={item.href}
+                className="text-xs uppercase tracking-[0.2em] text-zinc-300 transition-colors hover:text-gold-400"
+              >
+                {item.label}
+              </a>
+            ) : (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-xs uppercase tracking-[0.2em] text-zinc-300 transition-colors hover:text-gold-400"
+              >
+                {item.label}
+              </Link>
+            )
+          )}
         </nav>
 
-        <div className="hidden md:flex items-center gap-5">
+        <div className="hidden lg:flex items-center gap-5">
           <Link
             href="/login"
             className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300 transition-colors hover:text-gold-400"
@@ -56,7 +69,7 @@ export function Header() {
           aria-expanded={open}
           aria-controls="mobile-nav"
           onClick={() => setOpen((o) => !o)}
-          className="md:hidden -mr-2 inline-flex h-10 w-10 items-center justify-center rounded-md text-zinc-200 hover:text-gold-400"
+          className="lg:hidden -mr-2 inline-flex h-10 w-10 items-center justify-center rounded-md text-zinc-200 hover:text-gold-400"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -86,18 +99,29 @@ export function Header() {
       </Container>
 
       {open && (
-        <div id="mobile-nav" className="md:hidden border-t border-zinc-900 bg-black">
+        <div id="mobile-nav" className="lg:hidden border-t border-zinc-900 bg-black">
           <nav className="flex flex-col">
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={close}
-                className="border-b border-zinc-900 px-6 py-4 text-base text-zinc-100 hover:bg-zinc-900 hover:text-gold-400"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {NAV.map((item) =>
+              item.external ? (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  onClick={close}
+                  className="border-b border-zinc-900 px-6 py-4 text-base text-zinc-100 hover:bg-zinc-900 hover:text-gold-400"
+                >
+                  {item.label}
+                </a>
+              ) : (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={close}
+                  className="border-b border-zinc-900 px-6 py-4 text-base text-zinc-100 hover:bg-zinc-900 hover:text-gold-400"
+                >
+                  {item.label}
+                </Link>
+              )
+            )}
             <Link
               href="/login"
               onClick={close}
