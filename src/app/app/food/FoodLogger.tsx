@@ -540,6 +540,9 @@ export function FoodLogger({
                               const key = `${f.source}:${f.sourceId}`;
                               const serving = f.portions[0];
                               const per = serving && !f.generic ? macrosForGrams(f, serving.grams) : null;
+                              // Some brand-new USDA foods have no nutrients in the search payload yet.
+                              const noData =
+                                f.kcal100 === 0 && f.protein100 === 0 && f.carbs100 === 0 && f.fat100 === 0;
                               return (
                                 <li key={f.id ?? key}>
                                   <button
@@ -561,11 +564,13 @@ export function FoodLogger({
                                       <span className="block text-sm text-zinc-200">
                                         {resolving === key
                                           ? "…"
-                                          : (per ? per.kcal : Math.round(f.kcal100)).toLocaleString()}
+                                          : noData
+                                            ? "—"
+                                            : (per ? per.kcal : Math.round(f.kcal100)).toLocaleString()}
                                         <span className="text-zinc-500"> kcal</span>
                                       </span>
                                       <span className="block text-[11px] text-zinc-500">
-                                        {per ? "per serving" : "per 100 g"}
+                                        {noData ? "tap for details" : per ? "per serving" : "per 100 g"}
                                       </span>
                                     </span>
                                   </button>

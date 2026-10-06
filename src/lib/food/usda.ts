@@ -169,7 +169,9 @@ function portionLabel(p: RawPortion): string | null {
     p.measureUnit?.name && p.measureUnit.name.toLowerCase() !== "undetermined"
       ? p.measureUnit.name.trim()
       : "";
-  const modifier = p.modifier?.trim() ?? "";
+  // FNDDS stores a numeric portion code in `modifier` (e.g. "90000"); that is not a label.
+  const rawModifier = p.modifier?.trim() ?? "";
+  const modifier = /^\d+$/.test(rawModifier) ? "" : rawModifier;
   if (!unit && !modifier) return null;
   const amount = p.amount && p.amount > 0 ? trimNum(p.amount) : "1";
   return [amount, unit, modifier].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
