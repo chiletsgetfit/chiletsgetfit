@@ -81,6 +81,17 @@
     .signed-in-note { margin-top: 12px; font-size: 12.5px; color: var(--dim); }
     .signed-in-note a { color: var(--gold); text-decoration: none; }
     .goal-prompt { margin-top: 12px; padding: 16px; border: 1px dashed var(--border-strong); border-radius: 14px; color: var(--dim); font-size: 14px; text-align: center; }
+    .compare-label { margin-top: 16px; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); font-weight: 600; }
+    .goal-compare { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+    @media (max-width: 420px) { .goal-compare { grid-template-columns: 1fr; } }
+    .goal-pick { font: inherit; text-align: left; background: #050505; border: 1px solid var(--border-strong); border-radius: 14px; padding: 12px 14px; color: var(--text); cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: border-color .12s ease, background .12s ease; }
+    .goal-pick:hover { border-color: var(--gold); }
+    .goal-pick .gp-name { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .goal-pick .gp-cals { font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+    .goal-pick .gp-cals small { font-size: 11px; color: var(--muted); font-weight: 500; margin-left: 4px; letter-spacing: 0; }
+    .goal-pick.cut .gp-cals { color: var(--cut); } .goal-pick.maint .gp-cals { color: var(--maint); } .goal-pick.gain .gp-cals { color: var(--gain); }
+    .goal-pick.active { background: rgba(192,165,118,.10); border-color: var(--gold); }
+    .goal-pick.active .gp-name { color: var(--gold-light); }
     .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px); background: var(--gold); color: #000; font-weight: 700; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; padding: 10px 18px; border-radius: 999px; opacity: 0; pointer-events: none; transition: all .2s ease; z-index: 60; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -254,7 +265,14 @@
         kg = lb != null ? lb * 0.45359237 : null;
         cm = ft != null ? (ft * 12 + inch) * 2.54 : null;
       }
-      if (!sex || age == null || !kg || !cm || !Number.isFinite(act)) return null;
+      // Name what's still missing so the results card can say so plainly.
+      const missing = [];
+      if (!sex) missing.push('sex');
+      if (age == null) missing.push('age');
+      if (!kg) missing.push('weight');
+      if (!cm) missing.push('height');
+      if (!Number.isFinite(act)) missing.push('activity level');
+      if (missing.length) return { missing };
 
       const lb = kg / 0.45359237;
       let bmr, method;
@@ -286,17 +304,28 @@
 
     function render() {
       const r = compute();
-      lastResult = r;
-      if (!r) {
-        out.innerHTML = '<p class="placeholder">Fill in your sex, age, weight, height, and activity level to see your numbers.</p>';
+      if (!r || r.missing) {
+        lastResult = null;
+        const m = r && r.missing ? r.missing : [];
+        const list = m.length > 1 ? m.slice(0, -1).join(', ') + ' and ' + m[m.length - 1] : m[0];
+        out.innerHTML = `<p class="placeholder">${m.length ? `Still need your <strong>${list}</strong> to show your numbers.` : 'Fill in your sex, age, weight, height, and activity level to see your numbers.'}</p>`;
         copyBtn.disabled = true; lastText = ''; return;
       }
+      lastResult = r;
       const actLabel = form.activity.options[form.activity.selectedIndex].text.split(' — ')[0];
       const sel = r.goals.find(g => g.key === r.goal) || null;
       out.innerHTML = `
         <div class="big">
           <div class="stat"><div class="k">BMR</div><div class="v">${r.bmr.toLocaleString()}<small>kcal</small></div><div class="sub">${r.method}</div></div>
           <div class="stat"><div class="k">TDEE · maintenance</div><div class="v">${r.tdee.toLocaleString()}<small>kcal</small></div><div class="sub">× ${r.act} (${actLabel})</div></div>
+        </div>
+        <p class="compare-label">${sel ? 'Your goal' : 'Tap a goal'} &middot; daily calories</p>
+        <div class="goal-compare" role="group" aria-label="Choose a goal">
+          ${r.goals.map(g => `
+            <button type="button" class="goal-pick ${g.key}${sel && sel.key === g.key ? ' active' : ''}" data-goal="${g.key}" aria-pressed="${sel && sel.key === g.key}">
+              <span class="gp-name">${g.name}</span>
+              <span class="gp-cals">${g.cals.toLocaleString()}<small>kcal</small></span>
+            </button>`).join('')}
         </div>
         ${sel ? `
           <div class="goal ${sel.key}">
@@ -309,7 +338,7 @@
             ${signedIn ? `<div class="save-row"><button type="button" class="btn small ghost save-targets" data-goal="${sel.key}">Save as my targets</button></div>` : ''}
           </div>
           ${signedIn ? '<p class="signed-in-note">You&rsquo;re signed in &mdash; saving sets the daily targets in your <a href="/app/food">food log</a>.</p>' : ''}`
-        : '<p class="goal-prompt">Pick a goal above to see your calorie and macro targets.</p>'}
+        : '<p class="goal-prompt">Tap a goal to see its protein, carbs and fat.</p>'}
       `;
       copyBtn.disabled = false;
       lastText = [
@@ -319,9 +348,10 @@
         `BMR: ${r.bmr} kcal (${r.method})`,
         `TDEE: ${r.tdee} kcal`,
         '',
+        `Calories by goal: ${r.goals.map(g => `${g.name} ${g.cals}`).join(' · ')} kcal/day`,
         sel
-          ? `Goal: ${sel.name} — ${sel.cals} kcal/day · P ${sel.proteinG}g / C ${sel.carbG}g / F ${sel.fatG}g`
-          : 'Goal: not chosen yet',
+          ? `Chosen goal: ${sel.name} — ${sel.cals} kcal/day · P ${sel.proteinG}g / C ${sel.carbG}g / F ${sel.fatG}g`
+          : 'Chosen goal: not picked yet',
       ].join('\n');
     }
 
@@ -336,6 +366,13 @@
       .then(r => { if (r.ok) { signedIn = true; render(); } })
       .catch(() => {});
     out.addEventListener('click', async e => {
+      // The calorie tiles in the results double as the goal picker.
+      const pick = e.target.closest('.goal-pick');
+      if (pick) {
+        const radio = form.querySelector(`input[name="goal"][value="${pick.dataset.goal}"]`);
+        if (radio) { radio.checked = true; render(); }
+        return;
+      }
       const btn = e.target.closest('.save-targets');
       if (!btn || !lastResult) return;
       const g = lastResult.goals.find(x => x.key === btn.dataset.goal);
