@@ -287,17 +287,64 @@ function fromDetail(d: RawDetail): FoodDetail {
 
 // ---- public API --------------------------------------------------------------
 
-/** Generic whole foods first, then branded products. Throws UsdaError on API trouble. */
+// ---- ranking -----------------------------------------------------------------
+// USDA's own relevance order is poor ("chicken breast" leads with lunchmeat), so we
+// pull a wider net of whole foods and re-rank them ourselves.
+
+const STOP_WORDS = new Set(["and", "or", "of", "the", "a", "an", "with", "in", "on", "to", "for"]);
+const NOISE =
+  /\b(lunchmeat|luncheon|breaded|battered|fried|nuggets?|canned|baby food|infant|formula|dehydrated|freeze-dried|powdered?|imitation|substitute|fast foods?|restaurant|school lunch|frozen meal|entree|giblets?|gizzards?|liver|hearts?|necks?|backs?|capons?|stewing|bratwurst|sausages?|hot dogs?|frankfurters?|croquettes?|pilaf|paper|crackers?|dressing|benedict|creamed)\b/i;
+const VARIANT = /\b(skin eaten|skin not eaten|yield after cooking|bone removed|from fast food|from restaurant)\b/i;
+
+function stem(w: string) {
+  return w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w;
+}
+function wordsOf(s: string) {
+  return s
+    .toLowerCase()
+    .split(/[^a-z0-9%]+/)
+    .filter((w) => w && !STOP_WORDS.has(w))
+    .map(stem);
+}
+
+/** Higher is better: every query word present, leading word matches, short, no odd variants. */
+function scoreGeneric(f: FoodSummary, qWords: string[], queryHasNoise: boolean): number {
+  const words = wordsOf(f.name);
+  let score = 0;
+  for (const t of qWords) {
+    if (words.includes(t)) score += 3;
+    else if (words.some((w) => w.startsWith(t) || t.startsWith(w))) score += 1.5;
+  }
+  if (qWords.length && words[0] === qWords[0]) score += 2;
+  score -= Math.max(0, words.length - qWords.length) * 0.15;
+  if (!queryHasNoise && NOISE.test(f.name)) score -= 3;
+  if (VARIANT.test(f.name)) score -= 0.75;
+  if (f.dataType === "Foundation") score += 0.5;
+  else if (f.dataType === "SR Legacy") score += 0.3;
+  if (f.kcal100 === 0 && f.protein100 === 0 && f.carbs100 === 0 && f.fat100 === 0) score -= 1;
+  return score;
+}
+
+/** Generic whole foods (re-ranked) first, then branded products. Throws UsdaError on API trouble. */
 export async function searchUsda(query: string, perType = 8): Promise<FoodSummary[]> {
   const q = query.trim();
   if (q.length < 2) return [];
   return memoized(`search:${q.toLowerCase()}:${perType}`, 6 * 60 * 60 * 1000, async () => {
-    const body = (dataType: string[]) => JSON.stringify({ query: q, pageSize: perType, dataType });
+    const body = (dataType: string[], pageSize: number) =>
+      JSON.stringify({ query: q, pageSize, dataType });
     const [generic, branded] = await Promise.all([
-      usdaFetch<RawSearchResponse>("/foods/search", { method: "POST", body: body(GENERIC_DATA_TYPES) }),
-      usdaFetch<RawSearchResponse>("/foods/search", { method: "POST", body: body(["Branded"]) }),
+      usdaFetch<RawSearchResponse>("/foods/search", { method: "POST", body: body(GENERIC_DATA_TYPES, 30) }),
+      usdaFetch<RawSearchResponse>("/foods/search", { method: "POST", body: body(["Branded"], perType) }),
     ]);
-    return [...(generic.foods ?? []).map(fromSearch), ...(branded.foods ?? []).map(fromSearch)];
+    const qWords = wordsOf(q);
+    const queryHasNoise = NOISE.test(q);
+    const ranked = (generic.foods ?? [])
+      .map(fromSearch)
+      .map((f) => ({ f, s: scoreGeneric(f, qWords, queryHasNoise) }))
+      .sort((a, b) => b.s - a.s)
+      .slice(0, perType)
+      .map((x) => x.f);
+    return [...ranked, ...(branded.foods ?? []).map(fromSearch)];
   });
 }
 

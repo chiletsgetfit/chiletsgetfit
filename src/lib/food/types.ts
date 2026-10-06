@@ -25,6 +25,8 @@ export type FoodSummary = {
   portions: Portion[];
   /** Whole-food data (USDA Foundation / SR Legacy / FNDDS, or custom) rather than a branded product. */
   generic: boolean;
+  /** Curated everyday food seeded with a plain name; shown first in search. */
+  staple?: boolean;
 };
 
 export type NutrientAmount = { id: number; name: string; unit: string; amount: number };
@@ -97,10 +99,11 @@ export type FoodRow = {
   sat_fat_100: number | string | null;
   sodium_100: number | string | null;
   portions: Portion[] | null;
+  staple?: boolean | null;
 };
 
 export const FOOD_ROW_COLUMNS =
-  "id, source, source_id, owner_id, name, brand, data_type, category, kcal_100, protein_100, carbs_100, fat_100, fiber_100, sugar_100, sat_fat_100, sodium_100, portions";
+  "id, source, source_id, owner_id, name, brand, data_type, category, kcal_100, protein_100, carbs_100, fat_100, fiber_100, sugar_100, sat_fat_100, sodium_100, portions, staple";
 
 const num = (v: number | string | null | undefined): number =>
   v === null || v === undefined ? 0 : Number(v);
@@ -132,6 +135,7 @@ export function rowToSummary(r: FoodRow): FoodSummary {
     sodium100: numOrNull(r.sodium_100),
     portions: Array.isArray(r.portions) ? r.portions : [],
     generic: isGenericDataType(r.data_type, r.source),
+    staple: !!r.staple,
   };
 }
 

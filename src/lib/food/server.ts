@@ -294,13 +294,15 @@ export async function searchFoods(
   // PostgREST filter syntax treats these as structure, so keep them out of the pattern.
   const safe = q.replace(/[,().:*%\\"']/g, " ").replace(/\s+/g, " ").trim();
 
-  const localPromise = safe
-    ? db
-        .from("foods")
-        .select(FOOD_ROW_COLUMNS)
-        .or(`name.ilike.%${safe}%,brand.ilike.%${safe}%`)
-        .limit(15)
-        .then(({ data }) => (data ?? []) as FoodRow[])
+  // Match every word somewhere in name / brand / aliases ("cooked chicken" finds
+  // "Chicken breast, grilled" via its search_terms).
+  const words = safe.split(" ").filter(Boolean).slice(0, 6);
+  let localQuery = db.from("foods").select(FOOD_ROW_COLUMNS);
+  for (const w of words) {
+    localQuery = localQuery.or(`name.ilike.%${w}%,brand.ilike.%${w}%,search_terms.ilike.%${w}%`);
+  }
+  const localPromise = words.length
+    ? localQuery.limit(20).then(({ data }) => (data ?? []) as FoodRow[])
     : Promise.resolve([] as FoodRow[]);
 
   const usdaPromise = searchUsda(q, 8)
@@ -316,6 +318,8 @@ export async function searchFoods(
   const [localRows, usda] = await Promise.all([localPromise, usdaPromise]);
 
   localRows.sort((a, b) => {
+    const staple = Number(!!b.staple) - Number(!!a.staple);
+    if (staple) return staple;
     const own = Number(b.owner_id === userId) - Number(a.owner_id === userId);
     if (own) return own;
     const generic =

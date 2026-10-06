@@ -31,6 +31,7 @@ function portionOptions(food: FoodSummary): Portion[] {
 
 function sourceTag(f: FoodSummary) {
   if (f.source === "custom") return "Your food";
+  if (f.staple) return "Basics · USDA";
   if (f.generic) return "USDA";
   return f.brand ?? "Brand";
 }
