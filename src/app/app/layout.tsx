@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { AppNav } from "./AppNav";
 
 export default async function AppLayout({
   children,
@@ -33,42 +34,7 @@ export default async function AppLayout({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/brand/logo.svg" alt="ChiletsGetFit" className="h-[72px] w-auto" />
           </Link>
-          <nav className="flex items-center gap-4">
-            <Link
-              href="/app/progress"
-              className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300 hover:text-gold-400"
-            >
-              Progress
-            </Link>
-            <Link
-              href="/app/history"
-              className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300 hover:text-gold-400"
-            >
-              History
-            </Link>
-            <a
-              href="/resources/index.html"
-              className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300 hover:text-gold-400"
-            >
-              Resources
-            </a>
-            {isAdmin && (
-              <Link
-                href="/admin"
-                className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300 hover:text-gold-400"
-              >
-                Admin
-              </Link>
-            )}
-            <form action="/auth/signout" method="POST">
-              <button
-                type="submit"
-                className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300 hover:text-gold-400"
-              >
-                Sign out
-              </button>
-            </form>
-          </nav>
+          <AppNav isAdmin={isAdmin} />
         </div>
       </header>
       <main className="flex-1">{children}</main>

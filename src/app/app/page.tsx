@@ -7,6 +7,7 @@ import {
   startSavedWorkout,
 } from "./actions";
 import { PushButton } from "./PushButton";
+import { NutritionCard } from "./food/NutritionCard";
 
 function startOfWeek(d = new Date()) {
   const date = new Date(d);
@@ -64,6 +65,8 @@ export default async function ClientDashboard() {
           Your coach hasn&apos;t assigned a program yet. You can still build a
           custom workout below.
         </p>
+
+        <NutritionCard userId={user!.id} />
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
           {templates.map((t) => (
@@ -204,6 +207,8 @@ export default async function ClientDashboard() {
           </p>
         )}
       </div>
+
+      <NutritionCard userId={user!.id} />
 
       {/* Day picker */}
       <h2 className="mt-10 text-sm font-semibold uppercase tracking-[0.25em] text-gold-400">

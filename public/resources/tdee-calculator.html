@@ -74,6 +74,12 @@
     .btn { font: inherit; font-size: 12px; letter-spacing: .2em; text-transform: uppercase; font-weight: 700; border-radius: 999px; padding: 14px 20px; cursor: pointer; border: 1px solid var(--gold); background: var(--gold); color: #000; width: 100%; margin-top: 14px; transition: all .12s ease; }
     .btn:hover { background: var(--gold-light); border-color: var(--gold-light); }
     .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn.small { width: auto; margin-top: 0; padding: 10px 14px; font-size: 11px; }
+    .btn.ghost { background: transparent; color: var(--gold-light); }
+    .btn.ghost:hover { background: rgba(192,165,118,.14); border-color: var(--gold-light); }
+    .save-row { display: flex; justify-content: flex-end; margin-top: 12px; }
+    .signed-in-note { margin-top: 12px; font-size: 12.5px; color: var(--dim); }
+    .signed-in-note a { color: var(--gold); text-decoration: none; }
     .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px); background: var(--gold); color: #000; font-weight: 700; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; padding: 10px 18px; border-radius: 999px; opacity: 0; pointer-events: none; transition: all .2s ease; z-index: 60; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -212,6 +218,8 @@
     const out = document.getElementById('out');
     const copyBtn = document.getElementById('copyBtn');
     let lastText = '';
+    let lastResult = null;   // most recent compute() result, for "Save as my targets"
+    let signedIn = false;    // true when /api/nutrition/targets answers 200 (client is logged in)
 
     // Unit toggle: show/hide the relevant inputs.
     function applyUnits() {
@@ -266,6 +274,7 @@
 
     function render() {
       const r = compute();
+      lastResult = r;
       if (!r) {
         out.innerHTML = '<p class="placeholder">Fill in your sex, age, weight, height, and activity level to see your numbers.</p>';
         copyBtn.disabled = true; lastText = ''; return;
@@ -284,7 +293,9 @@
               <div class="macro"><div class="mk">Carbs</div><div class="mv">${g.carbG}<small>g</small></div></div>
               <div class="macro"><div class="mk">Fat</div><div class="mv">${g.fatG}<small>g</small></div></div>
             </div>
+            ${signedIn ? `<div class="save-row"><button type="button" class="btn small ghost save-targets" data-goal="${g.key}">Save as my targets</button></div>` : ''}
           </div>`).join('')}
+        ${signedIn ? '<p class="signed-in-note">You&rsquo;re signed in &mdash; saving a goal sets the daily targets in your <a href="/app/food">food log</a>.</p>' : ''}
       `;
       copyBtn.disabled = false;
       lastText = [
@@ -303,6 +314,28 @@
     copyBtn.addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(lastText); toast('Copied — paste it to your coach'); }
       catch (e) { const ta = document.createElement('textarea'); ta.value = lastText; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast('Copied — paste it to your coach'); } catch (_) { toast('Select the text and copy manually'); } ta.remove(); }
+    });
+    // Signed-in clients can push a goal straight into their food-log targets.
+    fetch('/api/nutrition/targets', { credentials: 'same-origin' })
+      .then(r => { if (r.ok) { signedIn = true; render(); } })
+      .catch(() => {});
+    out.addEventListener('click', async e => {
+      const btn = e.target.closest('.save-targets');
+      if (!btn || !lastResult) return;
+      const g = lastResult.goals.find(x => x.key === btn.dataset.goal);
+      if (!g) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/nutrition/targets', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ kcal: g.cals, protein_g: g.proteinG, carbs_g: g.carbG, fat_g: g.fatG, note: `${g.name} · TDEE calculator` }),
+        });
+        if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || 'Could not save'); }
+        toast('Saved to your food log');
+        btn.textContent = 'Saved ✓';
+        setTimeout(() => { btn.textContent = 'Save as my targets'; btn.disabled = false; }, 2500);
+      } catch (err) { toast(err.message || 'Could not save'); btn.disabled = false; }
     });
     function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1800); }
     applyUnits(); render();

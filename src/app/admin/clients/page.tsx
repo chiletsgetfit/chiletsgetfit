@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { InviteForm } from "./InviteForm";
 import { assignProgram, toggleClientActive, unassignProgram } from "./actions";
@@ -78,7 +79,13 @@ export default async function ClientsPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Link
+                        href={`/admin/clients/${c.id}/food`}
+                        className="inline-flex h-9 items-center rounded-full border border-zinc-700 px-4 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300 transition-colors hover:border-gold-400 hover:text-gold-400"
+                      >
+                        Food log
+                      </Link>
                       <NudgeForm clientId={c.id} />
                       <form action={toggleClientActive}>
                         <input type="hidden" name="clientId" value={c.id} />
