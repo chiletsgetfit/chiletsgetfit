@@ -80,6 +80,7 @@
     .save-row { display: flex; justify-content: flex-end; margin-top: 12px; }
     .signed-in-note { margin-top: 12px; font-size: 12.5px; color: var(--dim); }
     .signed-in-note a { color: var(--gold); text-decoration: none; }
+    .goal-prompt { margin-top: 12px; padding: 16px; border: 1px dashed var(--border-strong); border-radius: 14px; color: var(--dim); font-size: 14px; text-align: center; }
     .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px); background: var(--gold); color: #000; font-weight: 700; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; padding: 10px 18px; border-radius: 999px; opacity: 0; pointer-events: none; transition: all .2s ease; z-index: 60; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -105,7 +106,7 @@
     <h1>TDEE &amp; macro calculator</h1>
     <p class="intro">
       Estimate how many calories you burn in a day (your <strong>TDEE</strong>),
-      then see starting targets for fat loss, maintenance, or muscle gain. Fill it
+      pick a goal, and get your starting calorie and macro targets. Fill it
       in and the numbers update live. These are a <em>starting point</em> — your
       coach adjusts them against real-world results after 2–3 weeks.
     </p>
@@ -116,6 +117,14 @@
         <label><input type="radio" name="units" value="us" checked /><span>US (lb · ft/in)</span></label>
         <label><input type="radio" name="units" value="metric" /><span>Metric (kg · cm)</span></label>
       </div>
+
+      <label class="field"><span class="field-label">Goal</span>
+        <div class="choices">
+          <label class="choice"><input type="radio" name="goal" value="cut" /><span>Lose weight</span></label>
+          <label class="choice"><input type="radio" name="goal" value="maint" /><span>Maintain</span></label>
+          <label class="choice"><input type="radio" name="goal" value="gain" /><span>Gain weight</span></label>
+        </div>
+      </label>
 
       <label class="field"><span class="field-label">Sex</span>
         <div class="choices">
@@ -174,8 +183,8 @@
           that and your weight holds steady.
         </p>
         <p>
-          <strong>Goal targets</strong> are TDEE ±20% for a sustainable cut or lean gain<sup><a href="#ref-3">[3]</a></sup>.
-          Roughly ½–1 lb per week either direction, which is the pace that keeps muscle on a cut and keeps fat off a bulk.
+          <strong>Goal targets</strong> are TDEE −20% for a sustainable cut and TDEE +10% for a lean gain<sup><a href="#ref-3">[3]</a></sup>.
+          That is roughly ½–1 lb per week on the way down and a slower climb on the way up, the pace that keeps muscle on a cut and keeps fat off a bulk.
         </p>
         <p>
           <strong>Macros:</strong> protein is set at ~1 g per lb of bodyweight (or 1.2 g per lb of lean mass if you gave body
@@ -260,16 +269,19 @@
       // Protein: 1 g/lb bodyweight, or 1.2 g/lb lean mass if BF% given. Fat 25% of calories. Carbs fill.
       const proteinG = bf != null ? r5(lb * (1 - bf / 100) * 1.2) : r5(lb * 1.0);
       const goals = [
-        { key: 'cut',   name: 'Fat loss',      cals: r10(tdee * 0.80), note: '−20% · about ½–1 lb/week' },
-        { key: 'maint', name: 'Maintain',      cals: r10(tdee),        note: 'Hold weight, improve food quality' },
-        { key: 'gain',  name: 'Lean gain',     cals: r10(tdee * 1.10), note: '+10% · slow, mostly muscle' },
+        { key: 'cut',   name: 'Lose weight',  cals: r10(tdee * 0.80), note: 'TDEE −20% · about ½–1 lb/week' },
+        { key: 'maint', name: 'Maintain',     cals: r10(tdee),        note: 'Eat at TDEE · hold weight, improve food quality' },
+        { key: 'gain',  name: 'Gain weight',  cals: r10(tdee * 1.10), note: 'TDEE +10% · slow gain, mostly muscle' },
       ].map(g => {
         const fatG = r5(Math.max(g.cals * 0.25 / 9, lb * 0.3));
         const carbG = Math.max(0, r5((g.cals - proteinG * 4 - fatG * 9) / 4));
         return { ...g, proteinG, fatG, carbG };
       });
 
-      return { bmr: Math.round(bmr), tdee: r10(tdee), method, act, goals, lb: Math.round(lb), kg: Math.round(kg * 10) / 10, sex, age, bf };
+      // The chosen goal (radio group value is '' until one is picked).
+      const goal = form.goal.value || null;
+
+      return { bmr: Math.round(bmr), tdee: r10(tdee), method, act, goals, goal, lb: Math.round(lb), kg: Math.round(kg * 10) / 10, sex, age, bf };
     }
 
     function render() {
@@ -280,22 +292,24 @@
         copyBtn.disabled = true; lastText = ''; return;
       }
       const actLabel = form.activity.options[form.activity.selectedIndex].text.split(' — ')[0];
+      const sel = r.goals.find(g => g.key === r.goal) || null;
       out.innerHTML = `
         <div class="big">
           <div class="stat"><div class="k">BMR</div><div class="v">${r.bmr.toLocaleString()}<small>kcal</small></div><div class="sub">${r.method}</div></div>
           <div class="stat"><div class="k">TDEE · maintenance</div><div class="v">${r.tdee.toLocaleString()}<small>kcal</small></div><div class="sub">× ${r.act} (${actLabel})</div></div>
         </div>
-        ${r.goals.map(g => `
-          <div class="goal ${g.key}">
-            <div class="goal-head"><div><div class="goal-name">${g.name}</div><div class="goal-note">${g.note}</div></div><div class="goal-cals">${g.cals.toLocaleString()}<small>kcal/day</small></div></div>
+        ${sel ? `
+          <div class="goal ${sel.key}">
+            <div class="goal-head"><div><div class="goal-name">${sel.name}</div><div class="goal-note">${sel.note}</div></div><div class="goal-cals">${sel.cals.toLocaleString()}<small>kcal/day</small></div></div>
             <div class="macros">
-              <div class="macro"><div class="mk">Protein</div><div class="mv">${g.proteinG}<small>g</small></div></div>
-              <div class="macro"><div class="mk">Carbs</div><div class="mv">${g.carbG}<small>g</small></div></div>
-              <div class="macro"><div class="mk">Fat</div><div class="mv">${g.fatG}<small>g</small></div></div>
+              <div class="macro"><div class="mk">Protein</div><div class="mv">${sel.proteinG}<small>g</small></div></div>
+              <div class="macro"><div class="mk">Carbs</div><div class="mv">${sel.carbG}<small>g</small></div></div>
+              <div class="macro"><div class="mk">Fat</div><div class="mv">${sel.fatG}<small>g</small></div></div>
             </div>
-            ${signedIn ? `<div class="save-row"><button type="button" class="btn small ghost save-targets" data-goal="${g.key}">Save as my targets</button></div>` : ''}
-          </div>`).join('')}
-        ${signedIn ? '<p class="signed-in-note">You&rsquo;re signed in &mdash; saving a goal sets the daily targets in your <a href="/app/food">food log</a>.</p>' : ''}
+            ${signedIn ? `<div class="save-row"><button type="button" class="btn small ghost save-targets" data-goal="${sel.key}">Save as my targets</button></div>` : ''}
+          </div>
+          ${signedIn ? '<p class="signed-in-note">You&rsquo;re signed in &mdash; saving sets the daily targets in your <a href="/app/food">food log</a>.</p>' : ''}`
+        : '<p class="goal-prompt">Pick a goal above to see your calorie and macro targets.</p>'}
       `;
       copyBtn.disabled = false;
       lastText = [
@@ -305,7 +319,9 @@
         `BMR: ${r.bmr} kcal (${r.method})`,
         `TDEE: ${r.tdee} kcal`,
         '',
-        ...r.goals.map(g => `${g.name}: ${g.cals} kcal — P ${g.proteinG}g / C ${g.carbG}g / F ${g.fatG}g`),
+        sel
+          ? `Goal: ${sel.name} — ${sel.cals} kcal/day · P ${sel.proteinG}g / C ${sel.carbG}g / F ${sel.fatG}g`
+          : 'Goal: not chosen yet',
       ].join('\n');
     }
 
