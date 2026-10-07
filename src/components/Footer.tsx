@@ -9,6 +9,7 @@ const SOCIALS: { label: string; href: string }[] = [
 const SITE_LINKS = [
   { href: "/about", label: "About" },
   { href: "/services", label: "Services" },
+  { href: "/resources/index.html", label: "Resources" },
   { href: "/blog", label: "Blog" },
   { href: "/contact", label: "Contact" },
   { href: "/login", label: "Client sign in" },
