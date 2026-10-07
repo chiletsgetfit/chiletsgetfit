@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+  <title>At-Home Glute &amp; Leg Workout · ChiletsGetFit</title>
+  <meta name="description" content="A glute-focused lower-body workout you can do at home with a bench and dumbbells: hip thrusts, Bulgarian split squats, goblet squats, RDLs and step-ups, with cues and a video for every move." />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <style>
+    :root {
+      --gold: #c0a576;
+      --gold-light: #e8d3a6;
+      --bg: #000;
+      --card: #0a0a0a;
+      --border: #1f1f1f;
+      --border-strong: #2a2a2a;
+      --text: #ffffff;
+      --muted: #a1a1aa;
+      --dim: #71717a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--text); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      padding: 32px 20px 80px;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    .brand { display: flex; align-items: center; margin-bottom: 28px; }
+    .brand img { height: 56px; width: auto; }
+    h1 { font-size: clamp(28px, 5vw, 36px); line-height: 1.15; letter-spacing: -0.01em; font-weight: 700; margin-top: 4px; }
+    .intro { margin-top: 12px; color: var(--muted); font-size: 15px; }
+    .intro strong { color: var(--text); }
+    .pill {
+      display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--gold); background: rgba(192, 165, 118, 0.08); border: 1px solid rgba(192, 165, 118, 0.4);
+      padding: 6px 12px; border-radius: 999px; margin-bottom: 8px;
+    }
+    section { margin-top: 40px; }
+    h2 { font-size: 13px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold); font-weight: 600; margin-bottom: 16px; }
+    .lede { color: var(--muted); font-size: 14.5px; margin-bottom: 14px; }
+
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 22px; margin-bottom: 14px; }
+    .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+    .card-num { font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--dim); font-weight: 600; }
+    .card-dose { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); font-weight: 600; text-align: right; }
+    .card h3 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+    .card p { color: var(--muted); font-size: 14.5px; }
+    .card p + p { margin-top: 8px; }
+    .key { color: #fcd34d; font-weight: 500; }
+    .cues { margin: 10px 0 0 0; padding-left: 18px; color: var(--muted); font-size: 14.5px; }
+    .cues li { margin: 4px 0; }
+    .cues li::marker { color: var(--gold); }
+    .swap { margin-top: 10px; font-size: 13px; color: var(--dim); }
+    .swap strong { color: var(--muted); font-weight: 600; }
+
+    /* plan table */
+    .plan { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .plan th, .plan td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .plan th { font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--dim); font-weight: 600; }
+    .plan td:first-child { color: var(--text); font-weight: 500; }
+    .plan td { color: var(--muted); }
+    .plan tr:last-child td { border-bottom: 0; }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
+    .mini { background: #050505; border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
+    .mini .k { font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--dim); font-weight: 600; }
+    .mini .v { font-size: 15px; color: var(--text); margin-top: 4px; font-weight: 500; }
+    .mini .s { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    /* video */
+    .video { position: relative; width: 100%; aspect-ratio: 16 / 9; margin-top: 14px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: #050505; }
+    .video iframe { width: 100%; height: 100%; border: 0; }
+    .video-thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; }
+    .video-toggle {
+      position: absolute; inset: 0; width: 100%; height: 100%; background: transparent; color: var(--gold-light); border: 0; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font: inherit; font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase; font-weight: 600;
+    }
+    .video-toggle:hover .play-circle { background: var(--gold-light); }
+    .play-icon { display: flex; flex-direction: column; align-items: center; gap: 10px; text-shadow: 0 1px 8px rgba(0,0,0,.8); }
+    .play-circle { width: 56px; height: 56px; border-radius: 999px; background: var(--gold); color: #000; display: flex; align-items: center; justify-content: center; transition: background .15s ease; }
+    .play-circle svg { width: 26px; height: 26px; margin-left: 3px; }
+
+    .how p { color: var(--muted); font-size: 14.5px; margin-top: 10px; }
+    .how strong { color: var(--text); }
+    sup a { color: var(--gold); text-decoration: none; font-weight: 600; font-size: .7em; padding: 0 1px; }
+    .sources ol { padding-left: 24px; }
+    .sources li { color: var(--muted); font-size: 13.5px; line-height: 1.55; margin: 10px 0; padding-left: 6px; }
+    .sources li a { color: var(--gold); text-decoration: none; word-break: break-word; }
+    .sources li a:hover { color: var(--gold-light); text-decoration: underline; }
+    .sources li em { color: var(--dim); font-style: normal; font-size: 12.5px; display: block; margin-top: 2px; }
+    .disclaimer { background: rgba(30,30,30,.6); border: 1px solid var(--border); border-radius: 12px; padding: 16px; font-size: 13px; color: var(--dim); margin-top: 24px; }
+    footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--dim); font-size: 12px; text-align: center; }
+    footer a { color: var(--gold); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a href="/" class="brand" aria-label="ChiletsGetFit home"><img src="/brand/logo.svg" alt="ChiletsGetFit" /></a>
+
+    <span class="pill">Workout · Lower body · Glute focus</span>
+    <h1>At-home glute &amp; leg workout</h1>
+    <p class="intro">
+      Everything here needs <strong>one bench and a pair of dumbbells</strong>. About 45 minutes.
+      Do it <strong>twice a week</strong> with at least two days between sessions, and aim to add a rep or a
+      little weight every week. The glutes grow from heavy hip extension done with control, so the first
+      three moves get the most effort while you're fresh.
+    </p>
+
+    <!-- How to run it -->
+    <section>
+      <h2>How to run it</h2>
+      <div class="grid2">
+        <div class="mini"><div class="k">Effort</div><div class="v">1–3 reps in the tank</div><div class="s">Every set should be hard, not a grind to failure. If you could do 5 more, go heavier.</div></div>
+        <div class="mini"><div class="k">Tempo</div><div class="v">3 seconds down, drive up</div><div class="s">Control the lowering. Pause where the glute is stretched or squeezed.</div></div>
+        <div class="mini"><div class="k">Progression</div><div class="v">Top of the range → add weight</div><div class="s">When every set hits the top rep number, go up 5 lb next session and start the range over.</div></div>
+        <div class="mini"><div class="k">Rest</div><div class="v">90 s big moves · 60 s small</div><div class="s">Set a timer. Short rest turns a strength session into cardio.</div></div>
+      </div>
+      <table class="plan" style="margin-top:14px">
+        <thead><tr><th>Block</th><th>Moves</th><th>Time</th></tr></thead>
+        <tbody>
+          <tr><td>Warm-up</td><td>Glute bridges, bodyweight squats, reverse lunges, frog pumps</td><td>5–7 min</td></tr>
+          <tr><td>Main lifts</td><td>Hip thrust · Bulgarian split squat · Goblet squat · Romanian deadlift</td><td>~28 min</td></tr>
+          <tr><td>Accessories</td><td>Step-ups · Single-leg hip thrust</td><td>~10 min</td></tr>
+          <tr><td>Finisher + stretch</td><td>Frog pumps or sumo squats · hip flexor and glute stretch</td><td>~5 min</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Warm-up -->
+    <section>
+      <h2>Warm-up · 5–7 min</h2>
+      <p class="lede">One round, no rest. The point is blood flow and waking the glutes up so they do the work in the main lifts instead of your lower back.</p>
+
+      <article class="card">
+        <div class="card-head"><span class="card-num">W1</span><span class="card-dose">15 reps · 2 sec squeeze at top</span></div>
+        <h3>Glute bridge</h3>
+        <p>On your back, knees bent, feet flat and hip-width. <span class="key">Drive through your heels</span>, lift the hips until your body is a straight line from shoulders to knees, squeeze for two seconds, lower slowly. Ribs down, no arching the lower back.</p>
+        <div class="video" data-yt="vOvRFsGMMqo" data-title="Glute bridge"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="card-num">W2</span><span class="card-dose">12 reps · slow</span></div>
+        <h3>Bodyweight squat</h3>
+        <p>Feet shoulder-width, toes slightly out. Sit down between your heels as deep as you can with your heels flat and chest up. Three seconds down, one second up.</p>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="card-num">W3</span><span class="card-dose">8 reps each side</span></div>
+        <h3>Reverse lunge</h3>
+        <p>Step back, lower the back knee toward the floor, then <span class="key">push through the front heel</span> to stand. A slight forward lean of the torso puts more into the glute.</p>
+        <div class="video" data-yt="u_zSfK5ZFU4" data-title="Reverse lunge"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="card-num">W4</span><span class="card-dose">20 reps · fast pulses</span></div>
+        <h3>Frog pump</h3>
+        <p>Like a glute bridge but with the soles of your feet together and knees out. Pump the hips up and squeeze hard at the top. This is pure glute activation and should burn by the end.</p>
+        <div class="video" data-yt="rgljhH1X4vc" data-title="Frog pump"></div>
+      </article>
+    </section>
+
+    <!-- Main lifts -->
+    <section>
+      <h2>Main lifts · do these fresh</h2>
+      <p class="lede">Rest about 90 seconds between sets. Write down your weights, because next week the goal is one more rep or five more pounds.</p>
+
+      <article class="card">
+        <div class="card-head"><span class="card-num">01 · The glute builder</span><span class="card-dose">4 × 10–12 · rest 90 s</span></div>
+        <h3>Dumbbell hip thrust</h3>
+        <p>Upper back on the edge of the bench, dumbbell across your hips with a towel or pad under it. Feet planted so that <span class="key">your shins are vertical at the top</span>. Tuck your chin, keep your ribs down, and drive through your heels until your hips are fully locked out and your body is flat like a tabletop. Squeeze for one to two seconds, then lower under control.</p>
+        <ul class="cues">
+          <li>If you feel it in your lower back, your ribs are flaring. Tuck the pelvis and look forward, not at the ceiling.</li>
+          <li>Push the knees slightly out as you drive up.</li>
+          <li>Too easy with your heaviest dumbbell? Pause three seconds at the top, or move to the single-leg version below.</li>
+        </ul>
+        <div class="video" data-yt="29OfN4ztW_g" data-title="Dumbbell hip thrust"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="card-num">02</span><span class="card-dose">3 × 8–10 each leg · rest 90 s</span></div>
+        <h3>Bulgarian split squat</h3>
+        <p>Rear foot laces-down on the bench, a dumbbell in each hand (or one goblet-style). Take a <span class="key">long stride and lean your torso slightly forward</span>, which shifts the work from the quad to the glute. Lower until the back knee is just off the floor, then drive up through the whole front foot.</p>
+        <ul class="cues">
+          <li>Front shin stays mostly vertical. If your front knee shoots far past your toes, step out longer.</li>
+          <li>Hold onto something for balance if you need to. Balance is not the goal here, load is.</li>
+          <li>Do all reps on the weaker leg first, then match that number on the stronger leg.</li>
+        </ul>
+        <p class="swap"><strong>Swap:</strong> reverse lunges with dumbbells if the balance is too much today.</p>
+        <div class="video" data-yt="hiLF_pF3EJM" data-title="Bulgarian split squat"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="card-num">03</span><span class="card-dose">3 × 10–12 · rest 90 s</span></div>
+        <h3>Goblet squat</h3>
+        <p>Hold one dumbbell vertically against your chest, elbows pointing down. Feet shoulder-width, toes a little out. <span class="key">Sit as deep as you can</span> while your heels stay down and your chest stays tall. Knees track over the toes. Stand by pushing the floor away and squeezing the glutes at the top.</p>
+        <ul class="cues">
+          <li>Depth builds glutes. Below parallel is where they take over from the quads.</li>
+          <li>Heels lifting? Put a small plate or book under them.</li>
+        </ul>
+        <div class="video" data-yt="JO7D6GJ98wY" data-title="Goblet squat"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="card-num">04</span><span class="card-dose">3 × 10–12 · rest 90 s</span></div>
+        <h3>Dumbbell Romanian deadlift</h3>
+        <p>Dumbbells in front of your thighs, soft knees, shoulders back. <span class="key">Push your hips straight back</span> and let the dumbbells slide down your legs with a flat back until you feel a deep stretch in the hamstrings, usually just below the knee. Then drive the hips forward and squeeze the glutes to stand. The knees barely bend; this is a hinge, not a squat.</p>
+        <ul class="cues">
+          <li>Keep the dumbbells touching your legs the whole way. If they drift forward, your back takes the load.</li>
+          <li>Stop the descent when your back wants to round. Range of motion grows over weeks.</li>
+        </ul>
+        <p class="swap"><strong>Swap:</strong> single-leg Romanian deadlift (lighter, more glute medius and balance).</p>
+        <div class="video" data-yt="aa57T45iFSE" data-title="Dumbbell Romanian deadlift"></div>
+      </article>
+    </section>
+
+    <!-- Accessories -->
+    <section>
+      <h2>Accessories</h2>
+      <p class="lede">Lighter weights, strict form, rest 60–90 seconds.</p>
+
+      <article class="card">
+        <div class="card-head"><span class="card-num">05</span><span class="card-dose">3 × 10 each leg · rest 60–90 s</span></div>
+        <h3>Dumbbell step-up</h3>
+        <p>Whole foot on the bench (about knee height), dumbbells at your sides. <span class="key">Drive through the heel of the top foot</span> and stand all the way up, squeezing the glute. Lower slowly for three seconds. Do all reps on one leg, then switch.</p>
+        <ul class="cues">
+          <li>Do not push off the bottom foot. Lift it early and let the top leg do the work.</li>
+          <li>Lean the torso slightly forward over the bench to load the glute more.</li>
+          <li>Taller bench means more glute. Lower the height if your knee caves or you have to bounce.</li>
+        </ul>
+        <p class="swap"><strong>Swap:</strong> lateral step-ups or curtsy lunges to hit the side of the glute.</p>
+        <div class="video" data-yt="Zp7RG4jFScw" data-title="Dumbbell step-up"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="card-num">06</span><span class="card-dose">2–3 × 12–15 each leg · rest 60 s</span></div>
+        <h3>Single-leg hip thrust</h3>
+        <p>Same setup as the hip thrust, one foot planted, the other knee pulled toward your chest or leg held straight. <span class="key">Keep the hips level</span> as you drive up and squeeze. Bodyweight first; add a dumbbell on the working hip once you can do 15 clean reps.</p>
+        <div class="video" data-yt="L4nTaesNm0E" data-title="Single-leg hip thrust"></div>
+      </article>
+    </section>
+
+    <!-- Finisher -->
+    <section>
+      <h2>Finisher · pick one</h2>
+      <p class="lede">High reps, short rest, chase the burn. Two sets and you're done.</p>
+
+      <article class="card">
+        <div class="card-head"><span class="card-num">07A</span><span class="card-dose">2 × 25 · rest 45 s</span></div>
+        <h3>Frog pumps</h3>
+        <p>Same as the warm-up, but add a dumbbell on your hips and hold the top of the last rep for ten seconds.</p>
+        <div class="video" data-yt="rgljhH1X4vc" data-title="Frog pump"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="card-num">07B</span><span class="card-dose">2 × 15 · rest 45 s</span></div>
+        <h3>Dumbbell sumo squat</h3>
+        <p>Wide stance, toes turned out, one dumbbell hanging between your legs. Sit straight down, keeping the chest up and <span class="key">knees pushed out over the toes</span>. Squeeze the glutes and inner thighs to stand.</p>
+        <div class="video" data-yt="vBA3vyOxJv0" data-title="Dumbbell sumo squat"></div>
+      </article>
+    </section>
+
+    <!-- Cool-down -->
+    <section>
+      <h2>Stretch · 3 min</h2>
+      <article class="card">
+        <table class="plan">
+          <thead><tr><th>Stretch</th><th>How</th><th>Hold</th></tr></thead>
+          <tbody>
+            <tr><td>Kneeling hip flexor</td><td>Half-kneel, tuck the pelvis, squeeze the back glute, shift forward gently.</td><td>30 s each side</td></tr>
+            <tr><td>Figure-4 glute</td><td>On your back, ankle on the opposite knee, pull the bottom leg toward you.</td><td>30 s each side</td></tr>
+            <tr><td>Standing hamstring</td><td>Heel on the bench, leg straight, hinge forward with a flat back.</td><td>30 s each side</td></tr>
+          </tbody>
+        </table>
+      </article>
+    </section>
+
+    <!-- Why -->
+    <section class="how">
+      <div class="card">
+        <h2>Why these moves</h2>
+        <p>
+          A 2020 systematic review of muscle-activation studies ranked <strong>step-ups, hip thrusts, lunges and split squats</strong>
+          among the exercises with the highest gluteus maximus activity, well above most machine work<sup><a href="#ref-1">[1]</a></sup>.
+          Head to head, the hip thrust activates the glutes more than the back squat<sup><a href="#ref-2">[2]</a></sup>,
+          and when the two were trained for nine weeks they grew the glutes by a similar amount<sup><a href="#ref-3">[3]</a></sup>,
+          which is why this program leads with the thrust and keeps a deep squat in too.
+        </p>
+        <p>
+          The rep ranges are deliberately moderate. Lighter and heavier loads build similar muscle when sets are taken close to
+          failure<sup><a href="#ref-4">[4]</a></sup>, so with a limited set of dumbbells the lever you control is effort and
+          steady progression, not chasing a maximal weight.
+        </p>
+      </div>
+
+      <div class="card sources">
+        <h2>Sources</h2>
+        <ol>
+          <li id="ref-1">Neto WK, Soares EG, Vieira TL, et al. <strong>Gluteus maximus activation during common strength and hypertrophy exercises: a systematic review.</strong> <em>J Sports Sci Med.</em> 2020;19(1):195-203.
+            <em><a href="https://pubmed.ncbi.nlm.nih.gov/32132843/" target="_blank" rel="noopener">PubMed</a></em></li>
+          <li id="ref-2">Contreras B, Vigotsky AD, Schoenfeld BJ, Beardsley C, Cronin J. <strong>A comparison of gluteus maximus, biceps femoris, and vastus lateralis EMG activity in the back squat and barbell hip thrust exercises.</strong> <em>J Appl Biomech.</em> 2015;31(6):452-458.
+            <em><a href="https://pubmed.ncbi.nlm.nih.gov/26214739/" target="_blank" rel="noopener">PubMed</a></em></li>
+          <li id="ref-3">Plotkin DL, Rodas MA, Vigotsky AD, et al. <strong>Hip thrust and back squat training elicit similar gluteus muscle hypertrophy and transfer similarly to the deadlift.</strong> <em>Front Physiol.</em> 2023;14:1279170.
+            <em><a href="https://doi.org/10.3389/fphys.2023.1279170" target="_blank" rel="noopener">doi:10.3389/fphys.2023.1279170</a></em></li>
+          <li id="ref-4">Schoenfeld BJ, Grgic J, Ogborn D, Krieger JW. <strong>Strength and hypertrophy adaptations between low- vs. high-load resistance training: a systematic review and meta-analysis.</strong> <em>J Strength Cond Res.</em> 2017;31(12):3508-3523.
+            <em><a href="https://pubmed.ncbi.nlm.nih.gov/28834797/" target="_blank" rel="noopener">PubMed</a></em></li>
+        </ol>
+      </div>
+
+      <div class="disclaimer">
+        This is general training guidance from your coach, not medical advice. Stop any movement that causes sharp or joint pain, and
+        check with a doctor before starting if you have an injury or a condition that affects exercise.
+      </div>
+    </section>
+
+    <footer>
+      <p>Questions about form or weights? Message your coach. <a href="/resources/index.html">More resources →</a></p>
+    </footer>
+  </div>
+
+  <script>
+    // Lazy-load YouTube only when tapped, so the page stays fast on a phone.
+    document.querySelectorAll('.video[data-yt]').forEach((el) => {
+      const ytId = el.dataset.yt;
+      const title = el.dataset.title || 'demo';
+      if (!ytId || ytId.startsWith('YT_')) { el.remove(); return; }
+      const thumb = document.createElement('img');
+      thumb.src = 'https://i.ytimg.com/vi/' + ytId + '/hqdefault.jpg';
+      thumb.alt = title;
+      thumb.className = 'video-thumb';
+      thumb.loading = 'lazy';
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'video-toggle';
+      btn.setAttribute('aria-label', 'Play ' + title + ' demo');
+      btn.innerHTML = '<span class="play-icon"><span class="play-circle"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg></span>Play demo</span>';
+
+      el.appendChild(thumb);
+      el.appendChild(btn);
+
+      btn.addEventListener('click', () => {
+        const iframe = document.createElement('iframe');
+        iframe.src = 'https://www.youtube.com/embed/' + ytId + '?autoplay=1&rel=0&modestbranding=1';
+        iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+        iframe.allowFullscreen = true;
+        iframe.title = title;
+        el.innerHTML = '';
+        el.appendChild(iframe);
+      });
+    });
+  </script>
+</body>
+</html>
