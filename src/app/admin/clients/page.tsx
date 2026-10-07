@@ -81,6 +81,12 @@ export default async function ClientsPage() {
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
                       <Link
+                        href={`/admin/clients/${c.id}`}
+                        className="inline-flex h-9 items-center rounded-full border border-gold-700/60 px-4 text-xs font-semibold uppercase tracking-[0.2em] text-gold-400 transition-colors hover:border-gold-400 hover:text-gold-300"
+                      >
+                        View as client
+                      </Link>
+                      <Link
                         href={`/admin/clients/${c.id}/food`}
                         className="inline-flex h-9 items-center rounded-full border border-zinc-700 px-4 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300 transition-colors hover:border-gold-400 hover:text-gold-400"
                       >
