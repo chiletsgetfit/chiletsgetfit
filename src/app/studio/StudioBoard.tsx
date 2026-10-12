@@ -16,6 +16,7 @@ import {
   weekdayShort,
 } from "@/lib/studio/dates";
 import { IDEA_PROMPTS } from "@/lib/studio/prompts";
+import { DealsCard } from "./DealsCard";
 import {
   FORMAT_LABELS,
   IDEA_COLUMNS,
@@ -376,6 +377,13 @@ export function StudioBoard(props: Props) {
         onPatch={patchIdea}
         onDelete={deleteIdea}
         onToTask={ideaToTask}
+      />
+
+      <DealsCard
+        onSaveIdea={(title, notes) => {
+          addIdea(title.slice(0, 300), { notes: notes.slice(0, 5000) });
+          flash("Saved to your idea bank.");
+        }}
       />
 
       <SparkCard onSave={(t) => { addIdea(t); flash("Saved to your idea bank."); }} />
