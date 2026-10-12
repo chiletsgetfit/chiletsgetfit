@@ -6,7 +6,7 @@ import { signInWithPassword, type AuthState } from "./actions";
 
 const initial: AuthState = {};
 
-export function LoginForm({ next }: { next: string }) {
+export function LoginForm({ next, allowUsername = false }: { next: string; allowUsername?: boolean }) {
   const [state, action] = useActionState(signInWithPassword, initial);
 
   return (
@@ -14,10 +14,10 @@ export function LoginForm({ next }: { next: string }) {
       <input type="hidden" name="next" value={next} />
 
       <Field
-        label="Email"
+        label={allowUsername ? "Username or email" : "Email"}
         name="email"
-        type="email"
-        autoComplete="email"
+        type={allowUsername ? "text" : "email"}
+        autoComplete={allowUsername ? "username" : "email"}
         required
       />
       <Field

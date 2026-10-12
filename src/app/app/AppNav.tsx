@@ -4,16 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-// Six items plus the 72px logo need ~720px, so the inline row starts at md (768px).
-// Below that, phones get a compact menu that drops down under the header.
+// Seven items (coach + studio) plus the 72px logo need ~716px at gap-3, so the
+// inline row starts at md (768px) with gap-3, gap-4 from lg. Below md, phones
+// get a compact menu that drops down under the header.
 const linkClass =
-  "text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300 hover:text-gold-400";
+  "whitespace-nowrap text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300 hover:text-gold-400";
 const menuItemClass =
   "block border-b border-zinc-900 px-5 py-4 text-base text-zinc-100 hover:bg-zinc-900 hover:text-gold-400";
 
 type Item = { href: string; label: string; external?: boolean };
 
-export function AppNav({ isAdmin }: { isAdmin: boolean }) {
+export function AppNav({ isAdmin, hasStudio = false }: { isAdmin: boolean; hasStudio?: boolean }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -32,6 +33,7 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
   }, [open]);
 
   const items: Item[] = [
+    ...(hasStudio ? [{ href: "/studio", label: "Studio" }] : []),
     { href: "/app/food", label: "Food" },
     { href: "/app/progress", label: "Progress" },
     { href: "/app/history", label: "History" },
@@ -50,7 +52,7 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
   return (
     <>
       {/* Inline links from md up */}
-      <nav className="hidden items-center gap-4 md:flex">
+      <nav className="hidden items-center gap-3 md:flex lg:gap-4">
         {items.map((item) =>
           item.external ? (
             <a key={item.href} href={item.href} className={linkClass}>

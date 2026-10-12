@@ -15,11 +15,12 @@ export default async function AppLayout({
 
   if (!user) redirect("/login?next=/app");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, role, active, password_set")
-    .eq("id", user.id)
-    .single();
+  // Studio members (supabase/14-studio.sql) get a link to /studio. Its own query,
+  // run alongside, so a missing table can never break the client app.
+  const [{ data: profile }, { data: studio }] = await Promise.all([
+    supabase.from("profiles").select("full_name, role, active, password_set").eq("id", user.id).single(),
+    supabase.from("studio_members").select("user_id").eq("user_id", user.id).maybeSingle(),
+  ]);
 
   if (profile && !profile.active) redirect("/inactive");
   if (profile && !profile.password_set) redirect("/set-password");
@@ -34,7 +35,7 @@ export default async function AppLayout({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/brand/logo.svg" alt="ChiletsGetFit" className="h-[72px] w-auto" />
           </Link>
-          <AppNav isAdmin={isAdmin} />
+          <AppNav isAdmin={isAdmin} hasStudio={!!studio} />
         </div>
       </header>
       <main className="flex-1">{children}</main>

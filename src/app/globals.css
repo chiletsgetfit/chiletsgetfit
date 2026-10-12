@@ -29,3 +29,13 @@ body {
   background: var(--color-gold-500);
   color: #000;
 }
+
+/* The studio (/studio) is a light page inside this dark site: match the page
+   background, scrollbars and overscroll to it. */
+html:has([data-studio]) {
+  color-scheme: light;
+  background: #fafaf8;
+}
+html:has([data-studio]) body {
+  background: #fafaf8;
+}

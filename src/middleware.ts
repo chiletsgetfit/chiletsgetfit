@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { isStudioHost } from "@/lib/studio/host";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -33,6 +34,8 @@ export async function middleware(request: NextRequest) {
   const isProtected =
     path.startsWith("/app") ||
     path.startsWith("/admin") ||
+    path === "/studio" ||
+    path.startsWith("/studio/") ||
     path === "/set-password" ||
     path === "/inactive";
 
@@ -43,10 +46,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // amanda.chiletsgetfit.com: the board is the home page.
+  const studioHost = isStudioHost(request.headers.get("host"));
+
   if (path === "/login" && user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/app";
+    url.pathname = studioHost ? "/studio" : "/app";
+    url.search = "";
     return NextResponse.redirect(url);
+  }
+
+  if (studioHost && path === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/studio";
+    const rewrite = NextResponse.rewrite(url);
+    response.cookies.getAll().forEach((c) => rewrite.cookies.set(c));
+    return rewrite;
   }
 
   return response;

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { isStudioHost } from "@/lib/studio/host";
 import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = {
@@ -12,7 +14,9 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ next?: string }>;
 }) {
-  const { next = "/app" } = await searchParams;
+  // amanda.chiletsgetfit.com signs straight into the studio board, by username.
+  const studio = isStudioHost((await headers()).get("host"));
+  const { next = studio ? "/studio" : "/app" } = await searchParams;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-black px-4 py-10">
@@ -29,7 +33,7 @@ export default async function LoginPage({
           </p>
 
           <div className="mt-8">
-            <LoginForm next={next} />
+            <LoginForm next={next} allowUsername={studio} />
           </div>
         </div>
 
